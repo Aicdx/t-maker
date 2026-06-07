@@ -1,0 +1,1202 @@
+{
+  "days_requested": 5,
+  "mode": "optimized",
+  "strict": false,
+  "symbols": [
+    "300308",
+    "300502",
+    "600487"
+  ],
+  "days": [
+    {
+      "date": "2026-06-01",
+      "mode": "optimized",
+      "strict": false,
+      "points": [
+        {
+          "symbol": "600487",
+          "timestamp": "2026-06-01T09:49:00",
+          "action": "sell",
+          "kind": "candidate_sell",
+          "price": 78.0,
+          "confidence": 0.68,
+          "rule_ids": [
+            "vwap_high_sell"
+          ],
+          "reason": "价格显著高于 VWAP，存在高抛候选",
+          "risks": [
+            "强势股可能沿 VWAP 上方继续逼空"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "600487",
+          "timestamp": "2026-06-01T10:05:00",
+          "action": "sell",
+          "kind": "candidate_sell",
+          "price": 80.73,
+          "confidence": 0.68,
+          "rule_ids": [
+            "vwap_high_sell"
+          ],
+          "reason": "价格显著高于 VWAP，存在高抛候选",
+          "risks": [
+            "强势股可能沿 VWAP 上方继续逼空"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "300502",
+          "timestamp": "2026-06-01T09:39:00",
+          "action": "buy",
+          "kind": "suspected",
+          "price": 675.27,
+          "confidence": 0.48,
+          "rule_ids": [
+            "suspected_vwap_low_reversal"
+          ],
+          "reason": "价格回落到 VWAP 下方，跌幅接近低吸观察区",
+          "risks": [
+            "尚未达到强低吸规则，可能只是下跌中继"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "600487",
+          "timestamp": "2026-06-01T10:33:00",
+          "action": "buy",
+          "kind": "suspected",
+          "price": 77.36,
+          "confidence": 0.48,
+          "rule_ids": [
+            "suspected_vwap_low_reversal"
+          ],
+          "reason": "价格回落到 VWAP 下方，跌幅接近低吸观察区",
+          "risks": [
+            "尚未达到强低吸规则，可能只是下跌中继"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "300308",
+          "timestamp": "2026-06-01T09:46:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 1176.8,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "300308",
+          "timestamp": "2026-06-01T09:55:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 1180.0,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "300308",
+          "timestamp": "2026-06-01T11:30:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 1142.79,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "300308",
+          "timestamp": "2026-06-01T13:14:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 1165.02,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "300502",
+          "timestamp": "2026-06-01T09:49:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 701.75,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "300502",
+          "timestamp": "2026-06-01T09:55:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 705.68,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "300502",
+          "timestamp": "2026-06-01T10:07:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 703.03,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "300502",
+          "timestamp": "2026-06-01T13:05:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 694.38,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "600487",
+          "timestamp": "2026-06-01T09:47:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 77.2,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "600487",
+          "timestamp": "2026-06-01T09:51:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 77.6,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "600487",
+          "timestamp": "2026-06-01T10:09:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 80.09,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "600487",
+          "timestamp": "2026-06-01T11:30:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 77.99,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "600487",
+          "timestamp": "2026-06-01T13:00:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 77.99,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        }
+      ],
+      "summary": {
+        "candidate_count": 66,
+        "buy_count": 11,
+        "sell_count": 55,
+        "reviewed_count": 0,
+        "ai_buy_count": 0,
+        "ai_sell_count": 0,
+        "ai_hold_count": 0,
+        "accuracy_checked_count": 15,
+        "accuracy_hit_count": 12,
+        "accuracy_rate_pct": 80.0
+      }
+    },
+    {
+      "date": "2026-06-02",
+      "mode": "optimized",
+      "strict": false,
+      "points": [
+        {
+          "symbol": "600487",
+          "timestamp": "2026-06-02T10:02:00",
+          "action": "sell",
+          "kind": "candidate_sell",
+          "price": 82.81,
+          "confidence": 0.68,
+          "rule_ids": [
+            "vwap_high_sell"
+          ],
+          "reason": "价格显著高于 VWAP，存在高抛候选",
+          "risks": [
+            "强势股可能沿 VWAP 上方继续逼空"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "300502",
+          "timestamp": "2026-06-02T09:35:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 721.13,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "300502",
+          "timestamp": "2026-06-02T09:38:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 724.67,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "600487",
+          "timestamp": "2026-06-02T09:38:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 80.66,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "600487",
+          "timestamp": "2026-06-02T10:01:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 81.81,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "600487",
+          "timestamp": "2026-06-02T10:03:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 81.81,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "600487",
+          "timestamp": "2026-06-02T10:13:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 82.64,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "600487",
+          "timestamp": "2026-06-02T10:19:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 82.98,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        }
+      ],
+      "summary": {
+        "candidate_count": 18,
+        "buy_count": 0,
+        "sell_count": 18,
+        "reviewed_count": 0,
+        "ai_buy_count": 0,
+        "ai_sell_count": 0,
+        "ai_hold_count": 0,
+        "accuracy_checked_count": 8,
+        "accuracy_hit_count": 8,
+        "accuracy_rate_pct": 100.0
+      }
+    },
+    {
+      "date": "2026-06-03",
+      "mode": "optimized",
+      "strict": false,
+      "points": [
+        {
+          "symbol": "300308",
+          "timestamp": "2026-06-03T14:34:00",
+          "action": "buy",
+          "kind": "suspected",
+          "price": 1238.54,
+          "confidence": 0.48,
+          "rule_ids": [
+            "suspected_vwap_low_reversal"
+          ],
+          "reason": "价格回落到 VWAP 下方，跌幅接近低吸观察区",
+          "risks": [
+            "尚未达到强低吸规则，可能只是下跌中继"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "300502",
+          "timestamp": "2026-06-03T14:35:00",
+          "action": "buy",
+          "kind": "suspected",
+          "price": 763.34,
+          "confidence": 0.48,
+          "rule_ids": [
+            "suspected_vwap_low_reversal"
+          ],
+          "reason": "价格回落到 VWAP 下方，跌幅接近低吸观察区",
+          "risks": [
+            "尚未达到强低吸规则，可能只是下跌中继"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "300308",
+          "timestamp": "2026-06-03T09:56:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 1273.86,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "300502",
+          "timestamp": "2026-06-03T09:43:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 786.97,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "300502",
+          "timestamp": "2026-06-03T09:56:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 802.16,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        }
+      ],
+      "summary": {
+        "candidate_count": 23,
+        "buy_count": 3,
+        "sell_count": 20,
+        "reviewed_count": 0,
+        "ai_buy_count": 0,
+        "ai_sell_count": 0,
+        "ai_hold_count": 0,
+        "accuracy_checked_count": 5,
+        "accuracy_hit_count": 4,
+        "accuracy_rate_pct": 80.0
+      }
+    },
+    {
+      "date": "2026-06-04",
+      "mode": "optimized",
+      "strict": false,
+      "points": [
+        {
+          "symbol": "300502",
+          "timestamp": "2026-06-04T09:54:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 784.5,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "600487",
+          "timestamp": "2026-06-04T09:39:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 97.95,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "600487",
+          "timestamp": "2026-06-04T09:46:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 98.32,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "600487",
+          "timestamp": "2026-06-04T09:54:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 98.05,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        }
+      ],
+      "summary": {
+        "candidate_count": 5,
+        "buy_count": 0,
+        "sell_count": 5,
+        "reviewed_count": 0,
+        "ai_buy_count": 0,
+        "ai_sell_count": 0,
+        "ai_hold_count": 0,
+        "accuracy_checked_count": 4,
+        "accuracy_hit_count": 4,
+        "accuracy_rate_pct": 100.0
+      }
+    },
+    {
+      "date": "2026-06-05",
+      "mode": "optimized",
+      "strict": false,
+      "points": [
+        {
+          "symbol": "300308",
+          "timestamp": "2026-06-05T10:41:00",
+          "action": "buy",
+          "kind": "suspected",
+          "price": 1253.4,
+          "confidence": 0.48,
+          "rule_ids": [
+            "suspected_vwap_low_reversal"
+          ],
+          "reason": "价格回落到 VWAP 下方，跌幅接近低吸观察区",
+          "risks": [
+            "尚未达到强低吸规则，可能只是下跌中继"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "300308",
+          "timestamp": "2026-06-05T13:31:00",
+          "action": "buy",
+          "kind": "suspected",
+          "price": 1192.24,
+          "confidence": 0.48,
+          "rule_ids": [
+            "suspected_vwap_low_reversal"
+          ],
+          "reason": "价格回落到 VWAP 下方，跌幅接近低吸观察区",
+          "risks": [
+            "尚未达到强低吸规则，可能只是下跌中继"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "300502",
+          "timestamp": "2026-06-05T10:41:00",
+          "action": "buy",
+          "kind": "suspected",
+          "price": 788.88,
+          "confidence": 0.48,
+          "rule_ids": [
+            "suspected_vwap_low_reversal"
+          ],
+          "reason": "价格回落到 VWAP 下方，跌幅接近低吸观察区",
+          "risks": [
+            "尚未达到强低吸规则，可能只是下跌中继"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "300502",
+          "timestamp": "2026-06-05T13:31:00",
+          "action": "buy",
+          "kind": "suspected",
+          "price": 751.36,
+          "confidence": 0.48,
+          "rule_ids": [
+            "suspected_vwap_low_reversal"
+          ],
+          "reason": "价格回落到 VWAP 下方，跌幅接近低吸观察区",
+          "risks": [
+            "尚未达到强低吸规则，可能只是下跌中继"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "600487",
+          "timestamp": "2026-06-05T10:43:00",
+          "action": "buy",
+          "kind": "suspected",
+          "price": 99.05,
+          "confidence": 0.48,
+          "rule_ids": [
+            "suspected_vwap_low_reversal"
+          ],
+          "reason": "价格回落到 VWAP 下方，跌幅接近低吸观察区",
+          "risks": [
+            "尚未达到强低吸规则，可能只是下跌中继"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "300308",
+          "timestamp": "2026-06-05T10:09:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 1294.87,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "300308",
+          "timestamp": "2026-06-05T10:14:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 1299.87,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "300502",
+          "timestamp": "2026-06-05T10:09:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 817.0,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "300502",
+          "timestamp": "2026-06-05T10:20:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 816.99,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "600487",
+          "timestamp": "2026-06-05T09:42:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 100.05,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "600487",
+          "timestamp": "2026-06-05T09:59:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 101.46,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "600487",
+          "timestamp": "2026-06-05T10:13:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 102.9,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        },
+        {
+          "symbol": "600487",
+          "timestamp": "2026-06-05T10:18:00",
+          "action": "sell",
+          "kind": "suspected",
+          "price": 102.91,
+          "confidence": 0.46,
+          "rule_ids": [
+            "suspected_vwap_high_stretch"
+          ],
+          "reason": "价格高于 VWAP，接近高抛观察区",
+          "risks": [
+            "强势拉升时可能继续上冲"
+          ],
+          "llm_status": "pending",
+          "llm_action": null,
+          "llm_confidence": null,
+          "llm_summary": null,
+          "llm_reasons": [],
+          "wait_for": [],
+          "execution_allowed": null,
+          "execution_blockers": []
+        }
+      ],
+      "summary": {
+        "candidate_count": 55,
+        "buy_count": 15,
+        "sell_count": 40,
+        "reviewed_count": 0,
+        "ai_buy_count": 0,
+        "ai_sell_count": 0,
+        "ai_hold_count": 0,
+        "accuracy_checked_count": 13,
+        "accuracy_hit_count": 13,
+        "accuracy_rate_pct": 100.0
+      }
+    }
+  ],
+  "summary": {
+    "trading_day_count": 5,
+    "candidate_count": 167,
+    "buy_count": 29,
+    "sell_count": 138,
+    "reviewed_count": 0,
+    "ai_buy_count": 0,
+    "ai_sell_count": 0,
+    "ai_hold_count": 0,
+    "accuracy_checked_count": 45,
+    "accuracy_hit_count": 41,
+    "accuracy_rate_pct": 91.11
+  },
+  "artifact_path": "D:\\it\\t-maker\\artifacts\\replay-recent-5d-optimized-2026-06-01_2026-06-05.json"
+}

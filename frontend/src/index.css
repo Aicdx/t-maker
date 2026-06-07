@@ -1,0 +1,31 @@
+:root {
+  font-family:
+    Geist, Satoshi, 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #18211f;
+  background: #eef2f0;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100dvh;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(238, 242, 240, 0.9)),
+    #eef2f0;
+}
+
+#root {
+  min-height: 100dvh;
+}
+
+::selection {
+  background: rgba(37, 111, 107, 0.18);
+}

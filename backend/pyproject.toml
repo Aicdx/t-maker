@@ -1,0 +1,31 @@
+[project]
+name = "t-maker-backend"
+version = "0.1.0"
+description = "Local A-share T+0 assistant backend"
+requires-python = ">=3.12"
+dependencies = [
+  "akshare>=1.17.0",
+  "fastapi>=0.125.0",
+  "httpx>=0.28.0",
+  "numpy>=2.2.0",
+  "pandas>=2.3.0",
+  "psycopg[binary]>=3.3.0",
+  "pydantic>=2.12.0",
+  "pydantic-settings>=2.12.0",
+  "uvicorn[standard]>=0.38.0",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=9.0.0",
+  "pytest-asyncio>=1.3.0",
+  "ruff>=0.14.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
