@@ -78,6 +78,17 @@ test('replaySourceLabel keeps replay labels for active review and recent replay 
   )
 })
 
+test('replaySourceLabel names live monitoring points separately from stored history', () => {
+  assert.equal(
+    replaySourceLabel({
+      hasRecentReplay: false,
+      monitoring: true,
+      playbackActive: false,
+    }),
+    '实时盯盘',
+  )
+})
+
 test('shiftCalendarDate moves by natural days instead of cached trading-day options', () => {
   assert.equal(shiftCalendarDate('2026-06-01', -1), '2026-05-31')
   assert.equal(shiftCalendarDate('2026-06-01', 1), '2026-06-02')

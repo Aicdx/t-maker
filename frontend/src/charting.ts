@@ -80,6 +80,7 @@ export type ChartMarker = {
   confidence: number
   llmAction?: ReplayAction | null
   llmConfidence?: number | null
+  color: string
   label: string
 }
 
@@ -176,14 +177,34 @@ export function buildReplayMarkers(
         id: `${point.symbol}-${point.timestamp}-${point.action}`,
         timestamp: point.timestamp,
         time,
-        action: point.action,
+        action: point.llmAction ?? point.action,
         price: point.price,
-        confidence: point.confidence,
+        confidence: point.llmConfidence ?? point.confidence,
         llmAction: point.llmAction,
         llmConfidence: point.llmConfidence,
-        label: point.action === 'buy' ? 'B' : point.action === 'sell' ? 'S' : 'H',
+        color: markerColor(point.llmAction ?? point.action, point.llmConfidence ?? point.confidence),
+        label: markerLabel(point.llmAction ?? point.action, point.llmConfidence ?? point.confidence),
       }
     })
+}
+
+export function markerColor(action: ReplayAction, confidence: number) {
+  if (action === 'hold') return '#687570'
+  const high = confidence >= 0.8
+  const medium = confidence >= 0.6
+  if (action === 'buy') {
+    if (high) return '#a92222'
+    if (medium) return '#c94c4c'
+    return '#dc7a7a'
+  }
+  if (high) return '#16693c'
+  if (medium) return '#2f8a54'
+  return '#65b783'
+}
+
+function markerLabel(action: ReplayAction, confidence: number) {
+  const prefix = action === 'buy' ? 'B' : action === 'sell' ? 'S' : 'H'
+  return `${prefix}${Math.round(confidence * 100)}`
 }
 
 export function filterMarkersForSegment(markers: ChartMarker[], segment: Pick<ChartPoint, 'timestamp'>[]) {

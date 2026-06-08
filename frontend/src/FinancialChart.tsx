@@ -254,17 +254,16 @@ function addReplayMarkers(series: ChartSeries, markers: ChartMarker[], mode: Cha
 
 function toSeriesMarker(marker: ChartMarker, mode: ChartMode): SeriesMarker<Time> {
   const isBuy = marker.action === 'buy'
-  const confirmed = marker.llmAction === marker.action
-  const color = confirmed ? (isBuy ? '#c94c4c' : '#2f8a54') : '#687570'
+  const isSell = marker.action === 'sell'
   return {
     id: marker.id,
     time: toChartTime(marker),
-    position: mode === 'realtime' ? (isBuy ? 'atPriceBottom' : 'atPriceTop') : isBuy ? 'belowBar' : 'aboveBar',
+    position: mode === 'realtime' ? (isBuy ? 'atPriceBottom' : 'atPriceTop') : isBuy ? 'belowBar' : isSell ? 'aboveBar' : 'inBar',
     price: marker.price,
-    shape: isBuy ? 'arrowUp' : 'arrowDown',
-    color,
+    shape: isBuy ? 'arrowUp' : isSell ? 'arrowDown' : 'circle',
+    color: marker.color,
     text: marker.label,
-    size: confirmed ? 1.35 : 1.15,
+    size: marker.confidence >= 0.8 ? 1.45 : marker.confidence >= 0.6 ? 1.3 : 1.15,
   }
 }
 

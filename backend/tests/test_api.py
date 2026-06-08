@@ -442,6 +442,31 @@ def test_snapshot_reviews_candidate_signals_with_llm_client() -> None:
     assert buy_signal["llm_review"]["summary"] == "模型确认可作为低吸观察点"
 
 
+def test_snapshot_does_not_review_same_realtime_candidate_twice() -> None:
+    candles = {
+        "600487": _buy_candidate_candles("600487"),
+        "300308": _provider_candles("300308", close=151.6),
+        "300502": _provider_candles("300502", close=126.8),
+    }
+    review_client = FakeReviewClient()
+    client = TestClient(create_app(minute_provider=FakeProvider(candles), review_client=review_client))
+
+    first = client.get("/api/snapshot")
+    second = client.get("/api/snapshot")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert len(review_client.calls) == 1
+    payload = second.json()
+    buy_signal = [
+        signal
+        for signal in payload["signals"]
+        if signal["symbol"] == "600487" and signal["kind"] == "candidate_buy"
+    ][-1]
+    assert buy_signal["llm_status"] == "ok"
+    assert buy_signal["llm_review"]["confidence"] == 0.64
+
+
 def test_today_replay_endpoint_returns_ranked_t_points() -> None:
     candles = {
         "600487": _buy_candidate_candles("600487"),

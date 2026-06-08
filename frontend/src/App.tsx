@@ -1,11 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  ArrowClockwise,
   ChartLineUp,
   ClockCounterClockwise,
   Database,
   CalendarBlank,
-  Gauge,
   CaretLeft,
   CaretRight,
   Pulse,
@@ -21,10 +19,12 @@ import {
   buildChartPoints,
   buildQuoteSummary,
   buildReplayMarkers,
+  markerColor,
   type ChartMarker,
   type QuoteSummary,
 } from './charting'
 import { FinancialChart } from './FinancialChart'
+import { isAshareTradingTime, monitorStatus, type MonitorStatus } from './marketHours'
 import {
   dayMarketPayloadToReplay,
   replayPointReviewLabel,
@@ -215,15 +215,6 @@ async function reviewDayReplayPoint(symbol: string, date: string, timestamp: str
   return (await response.json()) as ReplayPoint
 }
 
-async function fetchRecentReplay(review: boolean) {
-  const response = await fetch(
-    `${API_BASE}/api/replay/recent?days=5&save=true&cache=true&review=${review}&strict=true`,
-    { method: 'POST' },
-  )
-  if (!response.ok) throw new Error(await apiErrorMessage(response))
-  return (await response.json()) as RecentReplayResult
-}
-
 async function fetchTradingDays(symbol: string) {
   const response = await fetch(`${API_BASE}/api/trading-days?symbol=${encodeURIComponent(symbol)}`)
   if (!response.ok) throw new Error(await apiErrorMessage(response))
@@ -252,9 +243,11 @@ function App() {
   const [selectedTradeDate, setSelectedTradeDate] = useState<string>('')
   const [selectedDayPayload, setSelectedDayPayload] = useState<TradingDayPayload | null>(null)
   const [dayLoading, setDayLoading] = useState(false)
-  const [replayLoading, setReplayLoading] = useState(false)
   const [replayReviewLoading, setReplayReviewLoading] = useState(false)
   const [selectedReplayKey, setSelectedReplayKey] = useState<string | null>(null)
+  const [monitorEnabled, setMonitorEnabled] = useState(false)
+  const [monitorNow, setMonitorNow] = useState(() => new Date())
+  const [monitorLastPulledAt, setMonitorLastPulledAt] = useState<string | null>(null)
   const [playbackCandles, setPlaybackCandles] = useState<Candle[] | null>(null)
   const [playbackPoints, setPlaybackPoints] = useState<ReplayPoint[]>([])
   const [playbackQueue, setPlaybackQueue] = useState<ReplayPoint[]>([])
@@ -263,37 +256,17 @@ function App() {
   const [playbackSymbol, setPlaybackSymbol] = useState<string | null>(null)
   const [playbackDate, setPlaybackDate] = useState<string | null>(null)
   const lastLoadedDaysSymbolRef = useRef<string | null>(null)
-  const isReplaying = replayLoading || replayReviewLoading || dayLoading
+  const isReplaying = replayReviewLoading || dayLoading
+  const currentMonitorStatus = monitorStatus(monitorEnabled, monitorNow)
 
-  async function loadSnapshot() {
-    try {
-      setError('')
-      const payload = await fetchSnapshot()
-      setHoveredPoint(null)
-      setSnapshot(payload)
-      setSelectedSymbol((current) =>
-        payload.watchlist.some((item) => item.symbol === current)
-          ? current
-          : (payload.watchlist[0]?.symbol ?? '300308'),
-      )
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '无法连接后端')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function simulateTick() {
-    try {
-      setError('')
-      const response = await fetch(`${API_BASE}/api/simulate/tick`, { method: 'POST' })
-      if (!response.ok) throw new Error(await apiErrorMessage(response))
-      setHoveredPoint(null)
-      setSnapshot((await response.json()) as Snapshot)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '模拟行情推进失败')
-    }
-  }
+  const applySnapshotPayload = useCallback((payload: Snapshot) => {
+    setSnapshot(payload)
+    setSelectedSymbol((current) =>
+      payload.watchlist.some((item) => item.symbol === current)
+        ? current
+        : (payload.watchlist[0]?.symbol ?? '300308'),
+    )
+  }, [])
 
   async function runSelectedDaySymbolReview() {
     if (!selectedTradeDate) {
@@ -390,43 +363,12 @@ function App() {
     }
   }
 
-  async function runRecentReplay(review = false) {
-    try {
-      if (review) {
-        setReplayReviewLoading(true)
-      } else {
-        setReplayLoading(true)
-      }
-      setError('')
-      const result = await fetchRecentReplay(review)
-      setRecentReplay(result)
-      const latestDay = result.days.at(-1)
-      setSelectedReplayDate(latestDay?.date ?? null)
-      setReplay(replayResultForDay(latestDay))
-      const nextReplayPoint = latestDay?.points.find((point) => point.symbol === selectedSymbol)
-      setSelectedReplayKey(nextReplayPoint ? replayPointKey(nextReplayPoint) : null)
-      setChartMode('one_minute')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : review ? '五日AI复核失败' : '五日回放失败')
-    } finally {
-      if (review) {
-        setReplayReviewLoading(false)
-      } else {
-        setReplayLoading(false)
-      }
-    }
-  }
-
   useEffect(() => {
     const controller = new AbortController()
     fetchSnapshot(controller.signal)
       .then((payload) => {
-        setSnapshot(payload)
-        setSelectedSymbol((current) =>
-          payload.watchlist.some((item) => item.symbol === current)
-            ? current
-            : (payload.watchlist[0]?.symbol ?? '300308'),
-        )
+        setHoveredPoint(null)
+        applySnapshotPayload(payload)
       })
       .catch((err: unknown) => {
         if (err instanceof DOMException && err.name === 'AbortError') return
@@ -437,7 +379,38 @@ function App() {
       })
 
     return () => controller.abort()
-  }, [])
+  }, [applySnapshotPayload])
+
+  useEffect(() => {
+    if (!monitorEnabled) return
+    let inFlight = false
+    let cancelled = false
+
+    const tick = async () => {
+      const now = new Date()
+      setMonitorNow(now)
+      if (!isAshareTradingTime(now) || inFlight) return
+      inFlight = true
+      try {
+        const payload = await fetchSnapshot()
+        if (cancelled) return
+        applySnapshotPayload(payload)
+        setMonitorLastPulledAt(new Date().toISOString())
+        setError('')
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : '盯盘刷新失败')
+      } finally {
+        inFlight = false
+      }
+    }
+
+    void tick()
+    const timer = window.setInterval(() => void tick(), 2000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [applySnapshotPayload, monitorEnabled])
 
   useEffect(() => {
     if (!snapshot?.watchlist.some((item) => item.symbol === selectedSymbol)) return
@@ -479,11 +452,34 @@ function App() {
             one_minute: playbackCandles.slice(0, playbackIndex),
             five_minute: [],
           }
-        : null,
+      : null,
     [playbackCandles, playbackIndex, playbackSymbol],
   )
+  const monitorPoints = useMemo(
+    () =>
+      realtimePointsForSignals(
+        snapshot?.signals ?? [],
+        snapshot?.chart_series.realtime ?? snapshot?.candles ?? [],
+        selectedSymbol,
+      ),
+    [selectedSymbol, snapshot?.candles, snapshot?.chart_series.realtime, snapshot?.signals],
+  )
+  const monitorReplay = useMemo<AppReplayResult | null>(() => {
+    if (!monitorEnabled) return null
+    const date = last(monitorPoints)?.timestamp.slice(0, 10) ?? new Date().toISOString().slice(0, 10)
+    return {
+      date,
+      mode: 'strict',
+      strict: true,
+      points: monitorPoints,
+      summary: replaySummaryFromPoints(monitorPoints),
+    }
+  }, [monitorEnabled, monitorPoints])
   const visibleChartSeries =
-    playbackSeries ?? selectedRecentReplayDay?.chart_series ?? selectedDayReplay?.chart_series ?? snapshot?.chart_series
+    playbackSeries ??
+    (monitorEnabled
+      ? snapshot?.chart_series
+      : selectedRecentReplayDay?.chart_series ?? selectedDayReplay?.chart_series ?? snapshot?.chart_series)
   const chartData = useMemo(
     () =>
       buildChartPoints(
@@ -535,17 +531,18 @@ function App() {
       ),
     [playbackPoints, playbackStatus, replay?.points, selectedSymbol],
   )
+  const visibleSignalPoints = monitorEnabled && playbackStatus === 'idle' ? monitorPoints : selectedReplayPoints
   const selectedReplayPoint = useMemo(
     () =>
-      selectedReplayPoints.find((point) => replayPointKey(point) === selectedReplayKey) ??
-      selectedReplayPoints[0] ??
+      visibleSignalPoints.find((point) => replayPointKey(point) === selectedReplayKey) ??
+      visibleSignalPoints.at(-1) ??
       null,
-    [selectedReplayKey, selectedReplayPoints],
+    [selectedReplayKey, visibleSignalPoints],
   )
   const chartMarkers = useMemo(
     () =>
       buildReplayMarkers(
-        selectedReplayPoints.map((point) => ({
+        visibleSignalPoints.map((point) => ({
           symbol: point.symbol,
           timestamp: markerTimestampFor(point.timestamp, chartMode),
           action: point.action,
@@ -556,7 +553,7 @@ function App() {
         })),
         chartData,
       ),
-    [chartData, chartMode, selectedReplayPoints],
+    [chartData, chartMode, visibleSignalPoints],
   )
 
   useEffect(() => {
@@ -613,13 +610,19 @@ function App() {
           <h1>1 分钟驱动，5 分钟确认</h1>
         </div>
         <div className="topbar-actions">
-          <button type="button" className="icon-button" onClick={() => void loadSnapshot()}>
-            <ArrowClockwise size={18} />
-            刷新
-          </button>
-          <button type="button" className="primary-button" onClick={() => void simulateTick()}>
+          <button
+            type="button"
+            className={`monitor-toggle ${currentMonitorStatus}`}
+            aria-pressed={monitorEnabled}
+            onClick={() => {
+              setMonitorEnabled((current) => !current)
+              setChartMode('realtime')
+              setHoveredPoint(null)
+            }}
+          >
             <Pulse size={18} />
-            离线模拟推进
+            <span>盯盘</span>
+            <strong>{monitorStatusLabel(currentMonitorStatus)}</strong>
           </button>
           <button
             type="button"
@@ -629,10 +632,6 @@ function App() {
           >
             <Pulse size={18} />
             {replayReviewLoading || playbackStatus === 'reviewing' ? '复核中' : '复核所选日'}
-          </button>
-          <button type="button" className="icon-button" onClick={() => void runRecentReplay()} disabled={isReplaying}>
-            <Gauge size={18} />
-            {replayLoading ? '回放中' : '五日回放'}
           </button>
         </div>
       </header>
@@ -721,11 +720,15 @@ function App() {
             </div>
             <ReplayStrip
               replay={replay}
+              monitorReplay={monitorReplay}
               recentReplay={recentReplay}
+              monitoring={monitorEnabled}
+              monitorStatus={currentMonitorStatus}
+              monitorLastPulledAt={monitorLastPulledAt}
               playbackStatus={playbackStatus}
               playbackTime={last(playbackSeries?.realtime ?? [])?.timestamp ?? null}
               selectedDate={selectedReplayDate}
-              points={selectedReplayPoints}
+              points={visibleSignalPoints}
               markers={chartMarkers}
               selectedKey={selectedReplayPoint ? replayPointKey(selectedReplayPoint) : null}
               onSelectDate={(date) => {
@@ -738,8 +741,8 @@ function App() {
                 setPlaybackStatus('idle')
                 setPlaybackCandles(null)
                 setPlaybackDate(null)
-    setPlaybackPoints([])
-    setPlaybackQueue([])
+                setPlaybackPoints([])
+                setPlaybackQueue([])
               }}
               onSelect={(point) => setSelectedReplayKey(replayPointKey(point))}
             />
@@ -775,7 +778,11 @@ function App() {
 
 function ReplayStrip({
   replay,
+  monitorReplay,
   recentReplay,
+  monitoring,
+  monitorStatus,
+  monitorLastPulledAt,
   playbackStatus,
   playbackTime,
   selectedDate,
@@ -786,7 +793,11 @@ function ReplayStrip({
   onSelect,
 }: {
   replay: AppReplayResult | null
+  monitorReplay: AppReplayResult | null
   recentReplay: RecentReplayResult | null
+  monitoring: boolean
+  monitorStatus: MonitorStatus
+  monitorLastPulledAt: string | null
   playbackStatus: 'idle' | 'playing' | 'reviewing' | 'done'
   playbackTime: string | null
   selectedDate: string | null
@@ -796,24 +807,32 @@ function ReplayStrip({
   onSelectDate: (date: string) => void
   onSelect: (point: ReplayPoint) => void
 }) {
-  if (!replay) {
+  const activeReplay = monitorReplay ?? replay
+  if (!activeReplay) {
     return <div className="replay-strip muted">尚未执行今日回放</div>
   }
 
   return (
     <div className="replay-strip">
       <div className="replay-summary">
-        <span>{replay.date}</span>
+        <span>{activeReplay.date}</span>
         <strong>{points.length} 个点位</strong>
         <small>
-          {replayModeLabel(replay.mode)}，{replaySourceLabel({
+          {replayModeLabel(activeReplay.mode)}，{replaySourceLabel({
             hasRecentReplay: Boolean(recentReplay),
             recentReviewEnabled: recentReplay?.review_enabled,
+            monitoring,
             playbackActive: playbackStatus !== 'idle',
           })}，原始{' '}
-          {replay.summary.candidate_count}，已复核 {replay.summary.reviewed_count}，图上 {markers.length}
+          {activeReplay.summary.candidate_count}，已复核 {activeReplay.summary.reviewed_count}，图上 {markers.length}
         </small>
       </div>
+      {monitoring && (
+        <div className={`monitor-status ${monitorStatus}`}>
+          <span>{monitorStripLabel(monitorStatus)}</span>
+          <strong>{formatTime(monitorLastPulledAt)}</strong>
+        </div>
+      )}
       {playbackStatus !== 'idle' && (
         <div className={`playback-status ${playbackStatus}`}>
           <span>{playbackStatusLabel(playbackStatus)}</span>
@@ -831,15 +850,18 @@ function ReplayStrip({
           <button
             type="button"
             key={replayPointKey(point)}
-            className={`replay-point ${point.action} ${selectedKey === replayPointKey(point) ? 'active' : ''}`}
+            className={`replay-point ${replayPointTone(point)} ${
+              selectedKey === replayPointKey(point) ? 'active' : ''
+            }`}
+            style={replayPointStyle(point)}
             onClick={() => onSelect(point)}
           >
-            {formatTime(point.timestamp)} {actionLabel(point.action)} {formatNullable(point.price)}
+            {formatTime(point.timestamp)} {actionLabel(point.llm_action ?? point.action)} {formatNullable(point.price)}
             <em>{replayPointReviewLabel(point)}</em>
           </button>
         ))}
       </div>
-      {replay.artifact_path && <small className="artifact-path">JSON {replay.artifact_path}</small>}
+      {activeReplay.artifact_path && <small className="artifact-path">JSON {activeReplay.artifact_path}</small>}
     </div>
   )
 }
@@ -1258,6 +1280,54 @@ function replayPointKey(point: Pick<ReplayPoint, 'symbol' | 'timestamp' | 'actio
   return `${point.symbol}-${point.timestamp}-${point.action}`
 }
 
+function replayPointTone(point: ReplayPoint) {
+  return point.llm_action ?? point.action
+}
+
+function replayPointStyle(point: ReplayPoint) {
+  const color = markerColor(replayPointTone(point), point.llm_confidence ?? point.confidence)
+  return {
+    borderColor: color,
+    color,
+  }
+}
+
+function realtimePointsForSignals(signals: Signal[], candles: Candle[], symbol: string): ReplayPoint[] {
+  const prices = new Map(
+    candles
+      .filter((candle) => candle.symbol === symbol)
+      .map((candle) => [candle.timestamp, candle.close]),
+  )
+  const points: ReplayPoint[] = []
+  signals
+    .filter((signal) => signal.symbol === symbol && signal.kind !== 'hold')
+    .forEach((signal) => {
+      const price = prices.get(signal.timestamp)
+      if (typeof price !== 'number') return
+      const review = signal.llm_review
+      points.push({
+        symbol: signal.symbol,
+        timestamp: signal.timestamp,
+        action: signal.action,
+        kind: signal.kind,
+        price,
+        confidence: signal.confidence,
+        rule_ids: signal.rule_ids,
+        reason: signal.reason,
+        risks: signal.risks,
+        llm_status: signal.llm_status,
+        llm_action: review?.action ?? null,
+        llm_confidence: review?.confidence ?? null,
+        llm_summary: review?.summary ?? null,
+        llm_reasons: review?.reasons ?? [],
+        wait_for: review?.wait_for ?? [],
+        execution_allowed: review?.execution_allowed ?? null,
+        execution_blockers: review?.execution_blockers ?? [],
+      })
+    })
+  return points
+}
+
 function last<T>(items: T[]): T | undefined {
   return items.at(-1)
 }
@@ -1281,6 +1351,18 @@ function playbackStatusLabel(status: 'idle' | 'playing' | 'reviewing' | 'done') 
   if (status === 'reviewing') return '等待AI复核'
   if (status === 'done') return '复核完成'
   return '未开始'
+}
+
+function monitorStatusLabel(status: MonitorStatus) {
+  if (status === 'active') return '开盘中'
+  if (status === 'paused') return '休市'
+  return '关闭'
+}
+
+function monitorStripLabel(status: MonitorStatus) {
+  if (status === 'active') return '实时 AI 复核'
+  if (status === 'paused') return '等待开盘'
+  return '盯盘关闭'
 }
 
 function quoteSummaryFor(quote: MarketQuote | undefined, fallbackPoints: ReturnType<typeof buildChartPoints>) {

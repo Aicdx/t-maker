@@ -7,6 +7,7 @@ import {
   buildPercentScalePoints,
   buildQuoteSummary,
   buildReplayMarkers,
+  markerColor,
   buildTradingDayTimeAnchors,
   fixedTimeAxisInteractionOptions,
   filterMarkersForSegment,
@@ -156,7 +157,54 @@ test('buildReplayMarkers maps replay points only when the chart time is visible'
 
   assert.equal(markers.length, 1)
   assert.equal(markers[0]?.time, '10:41')
-  assert.equal(markers[0]?.label, 'B')
+  assert.equal(markers[0]?.label, 'H86')
+})
+
+test('buildReplayMarkers uses AI action and confidence for marker labels and color depth', () => {
+  const points = buildChartPoints([
+    candle('2026-06-05T10:40:00', 10, 100),
+    candle('2026-06-05T10:41:00', 9.8, 300),
+    candle('2026-06-05T10:42:00', 10.2, 300),
+  ])
+
+  const markers = buildReplayMarkers(
+    [
+      {
+        symbol: '300502',
+        timestamp: '2026-06-05T10:41:00',
+        action: 'buy',
+        price: 9.8,
+        confidence: 0.72,
+        llmAction: 'buy',
+        llmConfidence: 0.55,
+      },
+      {
+        symbol: '300502',
+        timestamp: '2026-06-05T10:42:00',
+        action: 'buy',
+        price: 10.2,
+        confidence: 0.72,
+        llmAction: 'sell',
+        llmConfidence: 0.91,
+      },
+    ],
+    points,
+  )
+
+  assert.equal(markers[0]?.action, 'buy')
+  assert.equal(markers[0]?.label, 'B55')
+  assert.equal(markers[0]?.color, '#dc7a7a')
+  assert.equal(markers[1]?.action, 'sell')
+  assert.equal(markers[1]?.label, 'S91')
+  assert.equal(markers[1]?.color, '#16693c')
+})
+
+test('markerColor darkens buy red and sell green as AI confidence rises', () => {
+  assert.equal(markerColor('buy', 0.52), '#dc7a7a')
+  assert.equal(markerColor('buy', 0.92), '#a92222')
+  assert.equal(markerColor('sell', 0.52), '#65b783')
+  assert.equal(markerColor('sell', 0.92), '#16693c')
+  assert.equal(markerColor('hold', 0.92), '#687570')
 })
 
 test('filterMarkersForSegment keeps replay markers on their owning line segment', () => {

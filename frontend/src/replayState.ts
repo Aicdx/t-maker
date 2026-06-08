@@ -63,12 +63,15 @@ export function replaySummaryFromPoints(points: ReplayPoint[]): ReplaySummary {
 export function replaySourceLabel({
   hasRecentReplay,
   recentReviewEnabled = false,
+  monitoring = false,
   playbackActive,
 }: {
   hasRecentReplay: boolean
   recentReviewEnabled?: boolean
+  monitoring?: boolean
   playbackActive: boolean
 }) {
+  if (monitoring) return '实时盯盘'
   if (playbackActive || (hasRecentReplay && recentReviewEnabled)) return 'AI复核'
   if (hasRecentReplay) return '快速回放'
   return '历史点位'

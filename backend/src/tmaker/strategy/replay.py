@@ -596,6 +596,8 @@ def _compact_points(candidates: list[_ReplayCandidate], strict: bool = True) -> 
 
 
 def _representative_point(candidates: list[_ReplayCandidate], strict: bool) -> _ReplayCandidate:
+    if strict:
+        return candidates[0]
     if _is_lunch_duplicate_sell_cluster(candidates):
         return candidates[0]
     if _is_intraday_gain_sell_cluster(candidates):
@@ -603,8 +605,6 @@ def _representative_point(candidates: list[_ReplayCandidate], strict: bool) -> _
         if prelunch_peak is not None:
             return prelunch_peak
         return max(candidates, key=lambda candidate: (candidate.point.price, candidate.point.timestamp))
-    if strict:
-        return candidates[0]
     return _best_point(candidates)
 
 

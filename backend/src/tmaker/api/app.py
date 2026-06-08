@@ -696,11 +696,27 @@ def _review_candidate_signal(
 ) -> Signal:
     if not signal.needs_llm_review:
         return signal
+    existing = _existing_reviewed_signal(state, signal)
+    if existing is not None:
+        return existing
 
     import asyncio
 
     context = build_review_context(signal, candles, position, state.signals, market_context=market_context)
     return asyncio.run(reviewer.review(signal, context))
+
+
+def _existing_reviewed_signal(state: AppState, signal: Signal) -> Signal | None:
+    for existing in reversed(state.signals):
+        if (
+            existing.symbol == signal.symbol
+            and existing.timestamp == signal.timestamp
+            and existing.kind == signal.kind
+            and existing.action == signal.action
+            and existing.llm_status in {"ok", "failed"}
+        ):
+            return existing
+    return None
 
 
 def _default_review_client() -> OpenAICompatibleClient:

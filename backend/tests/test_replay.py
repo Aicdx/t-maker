@@ -31,7 +31,7 @@ def test_compact_points_can_still_run_optimized_analysis_when_requested() -> Non
     assert point.point.price == 9.80
 
 
-def test_compact_points_uses_peak_for_intraday_gain_sell_cluster() -> None:
+def test_compact_points_uses_first_visible_trigger_for_intraday_gain_sell_cluster() -> None:
     candidates = [
         _candidate(
             "2026-06-05T11:25:00",
@@ -51,8 +51,8 @@ def test_compact_points_uses_peak_for_intraday_gain_sell_cluster() -> None:
 
     [point] = _compact_points(candidates)
 
-    assert point.point.timestamp == "2026-06-05T11:30:00"
-    assert point.point.price == 1315.51
+    assert point.point.timestamp == "2026-06-05T11:25:00"
+    assert point.point.price == 1307.40
 
 
 def test_compact_points_does_not_merge_across_lunch_break() -> None:
