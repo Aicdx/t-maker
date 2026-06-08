@@ -215,6 +215,58 @@ def test_evaluate_signal_emits_suspected_buy_for_moderate_drop_below_vwap() -> N
     assert signal.needs_llm_review is True
 
 
+def test_evaluate_signal_emits_suspected_buy_for_low_pullback_rebound() -> None:
+    session = series(
+        [100.0, 104.0, 108.0, 107.0, 105.8, 104.6, 104.9],
+        [100, 400, 2000, 1600, 1200, 900, 700],
+    )
+    rolling_window = session[-5:]
+
+    signal = evaluate_signal(
+        rolling_window,
+        [],
+        position(),
+        fresh_health_at(rolling_window[-1].timestamp),
+        now=rolling_window[-1].timestamp,
+        session_candles=session,
+    )
+
+    assert signal.kind == SignalKind.SUSPECTED
+    assert signal.action == SignalAction.BUY
+    assert "pullback_low_rebound" in signal.rule_ids
+    assert signal.needs_llm_review is True
+
+
+def test_evaluate_signal_emits_suspected_buy_for_midday_low_rebound() -> None:
+    session = series(
+        [100.0, 101.8, 103.4, 104.5, 104.3, 103.7, 103.0, 102.5, 102.0, 102.25],
+        [500, 700, 1000, 1800, 1600, 1300, 1100, 900, 1900, 900],
+    )
+    rolling_window = session[-5:]
+
+    signal = evaluate_signal(
+        rolling_window,
+        [],
+        position(),
+        fresh_health_at(rolling_window[-1].timestamp),
+        now=rolling_window[-1].timestamp,
+        session_candles=session,
+    )
+
+    assert signal.kind == SignalKind.SUSPECTED
+    assert signal.action == SignalAction.BUY
+    assert "pullback_low_rebound" in signal.rule_ids
+
+
+def test_evaluate_signal_does_not_emit_buy_while_price_is_falling_on_expanding_volume() -> None:
+    candles = series([10.8, 10.7, 10.55, 10.35, 10.15], [100, 120, 150, 190, 240])
+
+    signal = evaluate_signal(candles, [], position(), fresh_health(), now=datetime(2026, 6, 5, 10, 5))
+
+    assert signal.kind == SignalKind.HOLD
+    assert signal.action == SignalAction.HOLD
+
+
 def test_evaluate_signal_emits_suspected_sell_for_moderate_vwap_stretch() -> None:
     candles = series([10.0, 10.08, 10.16, 10.35, 10.45], [100, 110, 130, 150, 170])
 

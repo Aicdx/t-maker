@@ -190,6 +190,63 @@ def test_compact_points_merges_sell_cluster_with_market_context_downgrade_rule()
     assert point.point.timestamp == "2026-06-05T10:03:00"
 
 
+def test_compact_points_merges_nearby_pullback_buy_cluster_to_first_trigger() -> None:
+    candidates = [
+        _candidate(
+            "2026-06-05T13:38:00",
+            95.40,
+            action=SignalAction.BUY,
+            kind=SignalKind.SUSPECTED,
+            rule_ids=["pullback_low_rebound"],
+        ),
+        _candidate(
+            "2026-06-05T13:47:00",
+            95.10,
+            action=SignalAction.BUY,
+            kind=SignalKind.SUSPECTED,
+            rule_ids=["pullback_low_rebound"],
+        ),
+        _candidate(
+            "2026-06-05T13:50:00",
+            95.47,
+            action=SignalAction.BUY,
+            kind=SignalKind.SUSPECTED,
+            rule_ids=["pullback_low_rebound"],
+        ),
+    ]
+
+    [point] = _compact_points(candidates)
+
+    assert point.point.timestamp == "2026-06-05T13:38:00"
+    assert point.point.price == 95.40
+
+
+def test_compact_points_keeps_new_pullback_buy_low_as_separate_leg() -> None:
+    candidates = [
+        _candidate(
+            "2026-06-05T13:38:00",
+            95.40,
+            action=SignalAction.BUY,
+            kind=SignalKind.SUSPECTED,
+            rule_ids=["pullback_low_rebound"],
+        ),
+        _candidate(
+            "2026-06-05T13:47:00",
+            94.90,
+            action=SignalAction.BUY,
+            kind=SignalKind.SUSPECTED,
+            rule_ids=["pullback_low_rebound"],
+        ),
+    ]
+
+    points = _compact_points(candidates)
+
+    assert [point.point.timestamp for point in points] == [
+        "2026-06-05T13:38:00",
+        "2026-06-05T13:47:00",
+    ]
+
+
 def test_symbol_replay_keeps_later_candidates_until_sell_is_confirmed() -> None:
     candles = _intraday_sell_then_buy_candles()
     provider = _Provider(candles)

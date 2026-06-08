@@ -573,6 +573,27 @@ def _review_points(
     return reviewed_points
 
 
+def should_keep_realtime_candidate(
+    previous_signals: Sequence[tuple[Signal, float]],
+    signal: Signal,
+    price: float,
+    position: Position,
+) -> bool:
+    if not signal.needs_llm_review:
+        return True
+
+    candidates = [
+        _to_replay_candidate(existing_signal, existing_price, [], position, [])
+        for existing_signal, existing_price in previous_signals
+        if existing_signal.symbol == signal.symbol
+        and existing_signal.needs_llm_review
+        and existing_signal.timestamp <= signal.timestamp
+    ]
+    candidate = _to_replay_candidate(signal, price, [], position, [])
+    compacted = _compact_points([*candidates, candidate], strict=True)
+    return any(item.signal is signal for item in compacted)
+
+
 def _compact_points(candidates: list[_ReplayCandidate], strict: bool = True) -> list[_ReplayCandidate]:
     compacted: list[_ReplayCandidate] = []
     current: list[_ReplayCandidate] = []
@@ -584,6 +605,7 @@ def _compact_points(candidates: list[_ReplayCandidate], strict: bool = True) -> 
             or _compact_rule_key(candidate.point.rule_ids) != _compact_rule_key(current[-1].point.rule_ids)
             or not _is_nearby_minute(current[-1].point, candidate.point, current)
             or _starts_new_sell_high_leg(current, candidate)
+            or _starts_new_buy_low_leg(current, candidate)
         ):
             compacted.append(_representative_point(current, strict))
             current = []
@@ -682,6 +704,12 @@ def _best_point(candidates: list[_ReplayCandidate]) -> _ReplayCandidate:
     return max(candidates, key=lambda candidate: candidate.point.confidence)
 
 
+def _is_pullback_buy_cluster(candidates: list[_ReplayCandidate]) -> bool:
+    return bool(candidates) and candidates[0].point.action == "buy" and any(
+        "pullback_low_rebound" in candidate.point.rule_ids for candidate in candidates
+    )
+
+
 def _compact_rule_key(rule_ids: list[str]) -> list[str]:
     modifiers = {
         "market_sector_uptrend_sell_downgrade",
@@ -694,6 +722,16 @@ def _compact_rule_key(rule_ids: list[str]) -> list[str]:
     ):
         return ["sell_high_stretch"]
     return core
+
+
+def _starts_new_buy_low_leg(
+    cluster: list[_ReplayCandidate],
+    candidate: _ReplayCandidate,
+) -> bool:
+    if not cluster or candidate.point.action != "buy" or not _is_pullback_buy_cluster(cluster):
+        return False
+    cluster_low = min(item.point.price for item in cluster)
+    return candidate.point.price <= cluster_low * 0.995
 
 
 def _is_nearby_minute(
@@ -711,7 +749,11 @@ def _is_nearby_minute(
             and _compact_rule_key(previous.rule_ids) == _compact_rule_key(current.rule_ids)
             and abs(previous.price - current.price) <= max(previous.price * 0.001, 0.01)
         )
-    max_gap_seconds = 15 * 60 if cluster and _is_sell_observation_cluster(cluster) else 120
+    max_gap_seconds = (
+        15 * 60
+        if cluster and (_is_sell_observation_cluster(cluster) or _is_pullback_buy_cluster(cluster))
+        else 120
+    )
     return (current_time - previous_time).total_seconds() <= max_gap_seconds
 
 

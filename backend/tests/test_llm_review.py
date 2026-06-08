@@ -18,6 +18,32 @@ class FakeClient:
         return self.payload
 
 
+class SequenceClient:
+    def __init__(self, payloads: list[dict | Exception]) -> None:
+        self.payloads = payloads
+        self.calls = 0
+
+    async def create_review(self, context: dict) -> dict:
+        self.calls += 1
+        payload = self.payloads[min(self.calls - 1, len(self.payloads) - 1)]
+        if isinstance(payload, Exception):
+            raise payload
+        return payload
+
+
+def review_payload(action: str = "buy", confidence: float = 0.62) -> dict:
+    return {
+        "action": action,
+        "confidence": confidence,
+        "summary": "可低吸但等待企稳",
+        "reasons": ["价格低于 VWAP", "量能收缩"],
+        "risks": ["大盘走弱"],
+        "wait_for": ["下一根 1 分钟 K 线不创新低"],
+        "execution_allowed": True,
+        "execution_blockers": [],
+    }
+
+
 def candidate_signal() -> Signal:
     return Signal(
         symbol="600000",
@@ -34,16 +60,7 @@ def candidate_signal() -> Signal:
 
 @pytest.mark.asyncio
 async def test_reviewer_attaches_structured_llm_review_for_candidate() -> None:
-    client = FakeClient(
-        {
-            "action": "buy",
-            "confidence": 0.62,
-            "summary": "可低吸但等待企稳",
-            "reasons": ["价格低于 VWAP", "量能收缩"],
-            "risks": ["大盘走弱"],
-            "wait_for": ["下一根 1 分钟 K 线不创新低"],
-        }
-    )
+    client = FakeClient(review_payload())
     reviewer = LlmReviewer(client)
 
     reviewed = await reviewer.review(candidate_signal(), {"candles": []})
@@ -52,6 +69,45 @@ async def test_reviewer_attaches_structured_llm_review_for_candidate() -> None:
     assert reviewed.llm_status == "ok"
     assert reviewed.llm_review is not None
     assert reviewed.llm_review.action == SignalAction.BUY
+
+
+@pytest.mark.asyncio
+async def test_reviewer_retries_transient_model_errors_until_success() -> None:
+    client = SequenceClient(
+        [
+            TimeoutError("first timeout"),
+            TimeoutError("second timeout"),
+            review_payload(confidence=0.71),
+        ]
+    )
+    reviewer = LlmReviewer(client)
+
+    reviewed = await reviewer.review(candidate_signal(), {"candles": []})
+
+    assert client.calls == 3
+    assert reviewed.llm_status == "ok"
+    assert reviewed.llm_review is not None
+    assert reviewed.llm_review.confidence == 0.71
+
+
+@pytest.mark.asyncio
+async def test_reviewer_fails_after_three_model_review_attempts() -> None:
+    client = SequenceClient(
+        [
+            TimeoutError("first timeout"),
+            TimeoutError("second timeout"),
+            TimeoutError("third timeout"),
+            review_payload(),
+        ]
+    )
+    reviewer = LlmReviewer(client)
+
+    reviewed = await reviewer.review(candidate_signal(), {"candles": []})
+
+    assert client.calls == 3
+    assert reviewed.llm_status == "failed"
+    assert reviewed.llm_review is not None
+    assert "third timeout" in reviewed.llm_review.execution_blockers[0]
 
 
 @pytest.mark.asyncio

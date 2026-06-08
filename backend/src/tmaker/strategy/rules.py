@@ -29,6 +29,9 @@ class RuleThresholds(BaseModel):
     suspected_local_vwap_high_deviation_pct: float = 1.6
     suspected_intraday_gain_sell_pct: float = 4.0
     suspected_session_vwap_high_deviation_pct: float = 1.0
+    pullback_session_vwap_low_deviation_pct: float = -0.5
+    pullback_near_recent_low_pct: float = 0.8
+    pullback_rebound_pct: float = 0.15
     market_sector_uptrend_stock_vs_sector_max_pct: float = 0.8
     market_sector_strong_up_pct: float = 2.5
     market_context_stock_vs_sector_sell_boost_pct: float = 3.0
@@ -133,6 +136,20 @@ def evaluate_signal(
             llm_status="pending",
         )
 
+    if not rule_ids and _pullback_low_rebound(candles, indicators, thresholds):
+        return Signal(
+            symbol=candles[-1].symbol,
+            timestamp=candles[-1].timestamp,
+            kind=SignalKind.SUSPECTED,
+            action=SignalAction.BUY,
+            confidence=0.5,
+            rule_ids=["pullback_low_rebound"],
+            reason="价格回踩到全天均价下方，接近近期低位后出现缩量回抽",
+            risks=["仍处于 VWAP 下方，若回抽失败可能继续探底"],
+            source_fresh=True,
+            llm_status="pending",
+        )
+
     if (
         not rule_ids
         and _suspected_vwap_high_stretch(indicators, thresholds)
@@ -232,7 +249,38 @@ def _suspected_vwap_low_reversal(
             and indicators.price_vwap_deviation_pct <= thresholds.suspected_vwap_low_deviation_pct
         )
         or indicators.price_vwap_deviation_pct <= thresholds.suspected_local_vwap_low_deviation_pct
+    ) and _low_reversal_guard(candles)
+
+
+def _pullback_low_rebound(
+    candles: list[Candle],
+    indicators: IndicatorSnapshot,
+    thresholds: RuleThresholds,
+) -> bool:
+    if len(candles) < 5:
+        return False
+
+    latest = candles[-1]
+    previous = candles[-2]
+    recent_low = min(candle.low for candle in candles[-5:])
+    near_recent_low_pct = ((latest.close - recent_low) / recent_low * 100) if recent_low else 0
+    rebound_pct = ((latest.close - previous.close) / previous.close * 100) if previous.close else 0
+    volume_not_expanding = latest.volume <= previous.volume
+
+    return (
+        indicators.price_session_vwap_deviation_pct <= thresholds.pullback_session_vwap_low_deviation_pct
+        and near_recent_low_pct <= thresholds.pullback_near_recent_low_pct
+        and rebound_pct >= thresholds.pullback_rebound_pct
+        and volume_not_expanding
     )
+
+
+def _low_reversal_guard(candles: list[Candle]) -> bool:
+    if len(candles) < 2:
+        return False
+    latest = candles[-1]
+    previous = candles[-2]
+    return latest.close >= previous.close or latest.volume <= previous.volume
 
 
 def _suspected_vwap_high_stretch(

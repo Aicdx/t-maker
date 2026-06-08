@@ -44,6 +44,20 @@ class FakeProvider:
         raise RuntimeError("quote unavailable")
 
 
+class ProgressiveProvider(FakeProvider):
+    def __init__(self, candles: dict[str, list[list[Candle]]]) -> None:
+        super().__init__({})
+        self.progressive_candles = candles
+        self.call_counts: dict[str, int] = {}
+
+    def fetch_minutes(self, symbol: str) -> list[Candle]:
+        self.calls.append(symbol)
+        snapshots = self.progressive_candles[symbol]
+        call_count = self.call_counts.get(symbol, 0)
+        self.call_counts[symbol] = call_count + 1
+        return snapshots[min(call_count, len(snapshots) - 1)]
+
+
 class FakeReviewClient:
     def __init__(self) -> None:
         self.calls: list[dict] = []
@@ -442,6 +456,46 @@ def test_snapshot_reviews_candidate_signals_with_llm_client() -> None:
     assert buy_signal["llm_review"]["summary"] == "模型确认可作为低吸观察点"
 
 
+def test_snapshot_uses_replay_style_context_for_pullback_low_rebound() -> None:
+    candles = {
+        "600487": _pullback_low_rebound_candles("600487"),
+        "300308": _provider_candles("300308", close=151.6),
+        "300502": _provider_candles("300502", close=126.8),
+    }
+    review_client = FakeReviewClient()
+    client = TestClient(create_app(minute_provider=FakeProvider(candles), review_client=review_client))
+
+    response = client.get("/api/snapshot")
+
+    payload = response.json()
+    buy_signal = [
+        signal
+        for signal in payload["signals"]
+        if signal["symbol"] == "600487" and signal["action"] == "buy"
+    ][-1]
+    assert response.status_code == 200
+    assert "pullback_low_rebound" in buy_signal["rule_ids"]
+    assert review_client.calls
+
+
+def test_snapshot_uses_thirty_minute_replay_context_for_realtime_candidates() -> None:
+    candles = {
+        "600487": _short_window_sell_spike_candles("600487"),
+        "300308": _provider_candles("300308", close=151.6),
+        "300502": _provider_candles("300502", close=126.8),
+    }
+    review_client = FakeReviewClient()
+    client = TestClient(create_app(minute_provider=FakeProvider(candles), review_client=review_client))
+
+    response = client.get("/api/snapshot")
+
+    payload = response.json()
+    symbol_signals = [signal for signal in payload["signals"] if signal["symbol"] == "600487"]
+    assert response.status_code == 200
+    assert symbol_signals[-1]["action"] == "hold"
+    assert not review_client.calls
+
+
 def test_snapshot_does_not_review_same_realtime_candidate_twice() -> None:
     candles = {
         "600487": _buy_candidate_candles("600487"),
@@ -465,6 +519,83 @@ def test_snapshot_does_not_review_same_realtime_candidate_twice() -> None:
     ][-1]
     assert buy_signal["llm_status"] == "ok"
     assert buy_signal["llm_review"]["confidence"] == 0.64
+
+
+def test_snapshot_merges_realtime_pullback_buy_cluster_like_replay() -> None:
+    candles = {
+        "600487": [
+            _pullback_low_rebound_candles("600487"),
+            _pullback_low_rebound_same_cluster_candles("600487"),
+        ],
+        "300308": [_provider_candles("300308", close=151.6)],
+        "300502": [_provider_candles("300502", close=126.8)],
+    }
+    review_client = FakeReviewClient()
+    client = TestClient(create_app(minute_provider=ProgressiveProvider(candles), review_client=review_client))
+
+    first = client.get("/api/snapshot")
+    second = client.get("/api/snapshot")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert len(review_client.calls) == 1
+    buy_signals = [
+        signal
+        for signal in second.json()["signals"]
+        if signal["symbol"] == "600487" and signal["action"] == "buy"
+    ]
+    assert [signal["timestamp"] for signal in buy_signals] == ["2026-06-05T10:10:00"]
+
+
+def test_snapshot_reviews_new_lower_realtime_pullback_buy_leg() -> None:
+    candles = {
+        "600487": [
+            _pullback_low_rebound_candles("600487"),
+            _pullback_low_rebound_new_low_leg_candles("600487"),
+        ],
+        "300308": [_provider_candles("300308", close=151.6)],
+        "300502": [_provider_candles("300502", close=126.8)],
+    }
+    review_client = FakeReviewClient()
+    client = TestClient(create_app(minute_provider=ProgressiveProvider(candles), review_client=review_client))
+
+    first = client.get("/api/snapshot")
+    second = client.get("/api/snapshot")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert len(review_client.calls) == 2
+    buy_signals = [
+        signal
+        for signal in second.json()["signals"]
+        if signal["symbol"] == "600487" and signal["action"] == "buy"
+    ]
+    assert [signal["timestamp"] for signal in buy_signals] == [
+        "2026-06-05T10:10:00",
+        "2026-06-05T10:16:00",
+    ]
+
+
+def test_snapshot_review_context_uses_realtime_candidate_history_without_hold_signals() -> None:
+    candles = {
+        "600487": [
+            _provider_candles("600487", close=23.4),
+            _pullback_low_rebound_candles("600487"),
+        ],
+        "300308": [_provider_candles("300308", close=151.6)],
+        "300502": [_provider_candles("300502", close=126.8)],
+    }
+    review_client = FakeReviewClient()
+    client = TestClient(create_app(minute_provider=ProgressiveProvider(candles), review_client=review_client))
+
+    first = client.get("/api/snapshot")
+    second = client.get("/api/snapshot")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert len(review_client.calls) == 1
+    assert all(item["kind"] != "hold" for item in review_client.calls[0]["recent_signals"])
+    assert review_client.calls[0]["recent_signals"][-1]["timestamp"] == review_client.calls[0]["timestamp"]
 
 
 def test_today_replay_endpoint_returns_ranked_t_points() -> None:
@@ -988,6 +1119,79 @@ def _sell_then_buy_candles(symbol: str) -> list[Candle]:
             low=close - 0.1,
             close=close,
             volume=volumes[index],
+        )
+        for index, close in enumerate(closes)
+    ]
+
+
+def _pullback_low_rebound_candles(symbol: str) -> list[Candle]:
+    closes = [100.0, 101.8, 103.4, 104.5, 104.3, 103.7, 103.0, 102.5, 102.0, 102.25]
+    volumes = [500, 700, 1000, 1800, 1600, 1300, 1100, 900, 1900, 900]
+    return [
+        Candle(
+            symbol=symbol,
+            timestamp=f"2026-06-05T10:{index + 1:02d}:00",
+            open=close,
+            high=close + 0.1,
+            low=close - 0.1,
+            close=close,
+            volume=volumes[index],
+        )
+        for index, close in enumerate(closes)
+    ]
+
+
+def _pullback_low_rebound_same_cluster_candles(symbol: str) -> list[Candle]:
+    closes = [102.1, 101.95, 101.85, 101.72, 101.88]
+    volumes = [850, 830, 810, 1200, 700]
+    return [
+        *_pullback_low_rebound_candles(symbol),
+        *[
+            Candle(
+                symbol=symbol,
+                timestamp=f"2026-06-05T10:{11 + index:02d}:00",
+                open=close,
+                high=close + 0.1,
+                low=close - 0.1,
+                close=close,
+                volume=volumes[index],
+            )
+            for index, close in enumerate(closes)
+        ],
+    ]
+
+
+def _pullback_low_rebound_new_low_leg_candles(symbol: str) -> list[Candle]:
+    closes = [102.0, 101.7, 101.35, 101.1, 101.3, 101.6]
+    volumes = [850, 820, 780, 1300, 900, 700]
+    return [
+        *_pullback_low_rebound_candles(symbol),
+        *[
+            Candle(
+                symbol=symbol,
+                timestamp=f"2026-06-05T10:{11 + index:02d}:00",
+                open=close,
+                high=close + 0.1,
+                low=close - 0.1,
+                close=close,
+                volume=volumes[index],
+            )
+            for index, close in enumerate(closes)
+        ],
+    ]
+
+
+def _short_window_sell_spike_candles(symbol: str) -> list[Candle]:
+    closes = [93.0] * 22 + [90.0] * 7 + [93.5]
+    return [
+        Candle(
+            symbol=symbol,
+            timestamp=f"2026-06-05T10:{index + 1:02d}:00",
+            open=close,
+            high=close + 0.1,
+            low=close - 0.1,
+            close=close,
+            volume=1000,
         )
         for index, close in enumerate(closes)
     ]

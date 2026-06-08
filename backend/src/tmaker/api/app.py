@@ -21,7 +21,13 @@ from tmaker.market.bars import aggregate_five_minute
 from tmaker.market.tencent_provider import TencentHistoricalMinuteProvider, TencentMarketProvider
 from tmaker.storage.postgres import PostgresRepository
 from tmaker.strategy.market_context import build_equal_weight_sector_candles, build_market_context
-from tmaker.strategy.replay import replay_recent_days, replay_symbol_today, replay_today, review_symbol_point
+from tmaker.strategy.replay import (
+    replay_recent_days,
+    replay_symbol_today,
+    replay_today,
+    review_symbol_point,
+    should_keep_realtime_candidate,
+)
 from tmaker.strategy.rules import evaluate_signal
 
 
@@ -301,7 +307,7 @@ def _refresh_from_provider(
         )
         market_context = _market_context_for_symbol(item.symbol, candles, candles_by_symbol)
         signal = evaluate_signal(
-            candles[-8:],
+            candles[-30:],
             [],
             position,
             health,
@@ -309,6 +315,8 @@ def _refresh_from_provider(
             session_candles=candles,
             market_context=market_context,
         )
+        if signal.needs_llm_review and not _should_keep_realtime_signal(state, signal, current_latest.close, position):
+            continue
         signal = _review_candidate_signal(
             signal,
             candles[-30:],
@@ -702,7 +710,13 @@ def _review_candidate_signal(
 
     import asyncio
 
-    context = build_review_context(signal, candles, position, state.signals, market_context=market_context)
+    context = build_review_context(
+        signal,
+        candles,
+        position,
+        [*_recent_candidate_signals(state, signal.symbol), signal],
+        market_context=market_context,
+    )
     return asyncio.run(reviewer.review(signal, context))
 
 
@@ -717,6 +731,38 @@ def _existing_reviewed_signal(state: AppState, signal: Signal) -> Signal | None:
         ):
             return existing
     return None
+
+
+def _should_keep_realtime_signal(
+    state: AppState,
+    signal: Signal,
+    price: float,
+    position: Position,
+) -> bool:
+    return should_keep_realtime_candidate(_candidate_signal_prices(state, signal.symbol), signal, price, position)
+
+
+def _candidate_signal_prices(state: AppState, symbol: str) -> list[tuple[Signal, float]]:
+    prices = {
+        candle.timestamp: candle.close
+        for candle in state.candles
+        if candle.symbol == symbol
+    }
+    return [
+        (signal, prices[signal.timestamp])
+        for signal in state.signals
+        if signal.symbol == symbol
+        and signal.needs_llm_review
+        and signal.timestamp in prices
+    ]
+
+
+def _recent_candidate_signals(state: AppState, symbol: str) -> list[Signal]:
+    return [
+        signal
+        for signal in state.signals
+        if signal.symbol == symbol and signal.needs_llm_review
+    ]
 
 
 def _default_review_client() -> OpenAICompatibleClient:
