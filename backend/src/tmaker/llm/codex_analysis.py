@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Literal
 
 import httpx
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from tmaker.llm.openai_client import _extract_responses_text
 
 
 class CodexAnalysis(BaseModel):
-    judgement: str
+    model_config = ConfigDict(extra="forbid")
+
+    judgement: Literal["buy", "sell", "wait", "avoid"]
     summary: str
     key_levels: list[str] = Field(default_factory=list)
     next_steps: list[str] = Field(default_factory=list)

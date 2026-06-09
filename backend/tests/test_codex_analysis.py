@@ -2,6 +2,7 @@ import json
 
 import httpx
 import pytest
+from pydantic import ValidationError
 
 from tmaker.llm.codex_analysis import CodexAnalysisClient, fallback_codex_analysis
 
@@ -96,6 +97,123 @@ async def test_codex_analysis_client_supports_chat_completions() -> None:
 
     assert result["judgement"] == "wait"
     assert result["next_steps"] == ["不追第一根反弹"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("api_key", "model"),
+    [
+        ("", "gpt-5.5"),
+        ("test-key", ""),
+    ],
+)
+async def test_codex_analysis_client_requires_api_key_and_model(
+    api_key: str,
+    model: str,
+) -> None:
+    client = CodexAnalysisClient(
+        base_url="https://acid077.xin",
+        api_key=api_key,
+        model=model,
+        transport=httpx.MockTransport(lambda request: httpx.Response(500)),
+    )
+
+    with pytest.raises(RuntimeError, match="API key or model"):
+        await client.create_analysis({"symbol": "300308"})
+
+
+@pytest.mark.asyncio
+async def test_codex_analysis_client_rejects_invalid_judgement() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "judgement": "maybe",
+                                    "summary": "无效判断。",
+                                    "key_levels": [],
+                                    "next_steps": [],
+                                    "invalidates": [],
+                                    "risk_notes": [],
+                                },
+                                ensure_ascii=False,
+                            )
+                        }
+                    }
+                ]
+            },
+        )
+
+    client = CodexAnalysisClient(
+        base_url="https://acid077.xin",
+        api_key="test-key",
+        model="gpt-5.5",
+        wire_api="chat_completions",
+        transport=httpx.MockTransport(handler),
+    )
+
+    with pytest.raises(ValidationError):
+        await client.create_analysis({"symbol": "300308"})
+
+
+@pytest.mark.asyncio
+async def test_codex_analysis_client_rejects_extra_response_field() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "judgement": "wait",
+                                    "summary": "等待。",
+                                    "key_levels": [],
+                                    "next_steps": [],
+                                    "invalidates": [],
+                                    "risk_notes": [],
+                                    "confidence": 0.8,
+                                },
+                                ensure_ascii=False,
+                            )
+                        }
+                    }
+                ]
+            },
+        )
+
+    client = CodexAnalysisClient(
+        base_url="https://acid077.xin",
+        api_key="test-key",
+        model="gpt-5.5",
+        wire_api="chat_completions",
+        transport=httpx.MockTransport(handler),
+    )
+
+    with pytest.raises(ValidationError):
+        await client.create_analysis({"symbol": "300308"})
+
+
+@pytest.mark.asyncio
+async def test_codex_analysis_client_raises_when_responses_text_missing() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"output": []})
+
+    client = CodexAnalysisClient(
+        base_url="https://acid077.xin",
+        api_key="test-key",
+        model="gpt-5.5",
+        wire_api="responses",
+        transport=httpx.MockTransport(handler),
+    )
+
+    with pytest.raises(ValueError):
+        await client.create_analysis({"symbol": "300308"})
 
 
 def test_fallback_codex_analysis_mentions_unavailable() -> None:
