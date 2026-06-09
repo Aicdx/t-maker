@@ -118,6 +118,25 @@ async def test_tick_sends_one_notification_for_eligible_signal() -> None:
 
     assert snapshot.calls == 1
     assert len(analyzer.calls) == 1
+    context = analyzer.calls[0]
+    assert context["signal"]["symbol"] == "300308"
+    assert context["quote"]["name"] == "中际旭创"
+    assert context["candles"] == []
+    assert context["chart_series"] == {
+        "realtime": [],
+        "one_minute": [],
+        "five_minute": [],
+    }
+    assert context["positions"] == []
+    assert context["provider_health"] == {
+        "provider": "test",
+        "symbol": "300308",
+        "last_success_at": "2026-06-09T10:23:00",
+        "latency_ms": 0,
+        "stale_after_seconds": 90,
+        "missing_candle_count": 0,
+        "last_error": None,
+    }
     assert len(notifier.messages) == 1
     assert "Codex 二次判断" in notifier.messages[0]
     assert runner.state.notification_count == 1
@@ -139,6 +158,26 @@ async def test_tick_deduplicates_repeated_signal() -> None:
     await runner.tick(now=datetime(2026, 6, 9, 10, 25), force=True)
 
     assert runner.state.notification_count == 1
+
+
+@pytest.mark.asyncio
+async def test_tick_allows_notification_after_dedup_window_expires() -> None:
+    runner = MonitorRunner(
+        snapshot_service=FakeSnapshotService([_signal()]),
+        analyzer=FakeAnalyzer(),
+        notifier=FakeNotifier(),
+        policy=MonitorPolicy(min_ai_confidence=0.6),
+        dedup_window_minutes=1,
+    )
+
+    await runner.tick(now=datetime(2026, 6, 9, 10, 24), force=True)
+    assert runner.state.notification_count == 1
+
+    await runner.tick(now=datetime(2026, 6, 9, 10, 24, 30), force=True)
+    assert runner.state.notification_count == 1
+
+    await runner.tick(now=datetime(2026, 6, 9, 10, 26), force=True)
+    assert runner.state.notification_count == 2
 
 
 @pytest.mark.asyncio
@@ -190,3 +229,26 @@ async def test_tick_skips_outside_trading_time_without_force() -> None:
 
     assert snapshot.calls == 0
     assert runner.state.notification_count == 0
+
+
+@pytest.mark.asyncio
+async def test_start_stop_are_idempotent() -> None:
+    runner = MonitorRunner(
+        snapshot_service=FakeSnapshotService([]),
+        analyzer=FakeAnalyzer(),
+        notifier=FakeNotifier(),
+        policy=MonitorPolicy(min_ai_confidence=0.6),
+        interval_seconds=3600,
+    )
+
+    await runner.start()
+    first_task = runner._task
+    await runner.start()
+
+    assert runner.state.running is True
+    assert runner._task is first_task
+
+    await runner.stop()
+    await runner.stop()
+
+    assert runner.state.running is False

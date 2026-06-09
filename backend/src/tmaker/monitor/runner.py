@@ -73,7 +73,7 @@ class MonitorRunner:
             return
         try:
             payload = self.snapshot_service.refresh()
-            await self._notify_payload(payload)
+            await self._notify_payload(payload, current)
             self.state.last_success_at = current
             self.state.last_error = None
         except Exception as exc:
@@ -84,12 +84,12 @@ class MonitorRunner:
             await self.tick()
             await asyncio.sleep(self.interval_seconds)
 
-    async def _notify_payload(self, payload: dict[str, Any]) -> None:
+    async def _notify_payload(self, payload: dict[str, Any], now: datetime) -> None:
         signal_adapter = TypeAdapter(list[Signal])
         quote_adapter = TypeAdapter(dict[str, MarketQuote])
         signals = signal_adapter.validate_python(payload.get("signals", []))
         quotes = quote_adapter.validate_python(payload.get("quotes", {}))
-        self._prune_dedup(datetime.now())
+        self._prune_dedup(now)
         for signal in signals:
             if not self.policy.should_notify(signal):
                 continue
@@ -112,7 +112,7 @@ class MonitorRunner:
                 analysis = fallback_codex_analysis(exc)
             message = format_feishu_message(signal=signal, quote=quote, codex_analysis=analysis)
             await self.notifier.send_text(message)
-            self._notified_keys[key] = datetime.now()
+            self._notified_keys[key] = now
             self.state.notification_count += 1
             self.state.last_notified_signal_key = key
 
