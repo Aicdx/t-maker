@@ -4,8 +4,19 @@ from datetime import datetime
 import httpx
 import pytest
 
-from tmaker.domain.models import LlmReview, MarketQuote, Signal, SignalAction, SignalKind
-from tmaker.notify.feishu import FeishuConfigError, FeishuNotifier, format_feishu_message
+from tmaker.domain.models import (
+    LlmReview,
+    MarketQuote,
+    Signal,
+    SignalAction,
+    SignalKind,
+)
+from tmaker.notify.feishu import (
+    FeishuConfigError,
+    FeishuDeliveryError,
+    FeishuNotifier,
+    format_feishu_message,
+)
 
 
 def _signal() -> Signal:
@@ -126,8 +137,42 @@ async def test_feishu_notifier_requires_webhook_url() -> None:
 async def test_feishu_notifier_raises_on_failed_response() -> None:
     notifier = FeishuNotifier(
         webhook_url="https://open.feishu.cn/open-apis/bot/v2/hook/test",
-        transport=httpx.MockTransport(lambda request: httpx.Response(500, text="server error")),
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(500, text="server error")
+        ),
     )
 
     with pytest.raises(httpx.HTTPStatusError):
+        await notifier.send_text("hello")
+
+
+@pytest.mark.asyncio
+async def test_feishu_notifier_raises_on_failed_status_code() -> None:
+    notifier = FeishuNotifier(
+        webhook_url="https://open.feishu.cn/open-apis/bot/v2/hook/test",
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(
+                200,
+                json={"StatusCode": 19001, "StatusMessage": "bad webhook"},
+            )
+        ),
+    )
+
+    with pytest.raises(FeishuDeliveryError, match="bad webhook"):
+        await notifier.send_text("hello")
+
+
+@pytest.mark.asyncio
+async def test_feishu_notifier_raises_on_failed_code() -> None:
+    notifier = FeishuNotifier(
+        webhook_url="https://open.feishu.cn/open-apis/bot/v2/hook/test",
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(
+                200,
+                json={"code": 999, "msg": "bad webhook"},
+            )
+        ),
+    )
+
+    with pytest.raises(FeishuDeliveryError, match="bad webhook"):
         await notifier.send_text("hello")

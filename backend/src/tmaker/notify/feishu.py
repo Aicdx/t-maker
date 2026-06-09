@@ -12,6 +12,10 @@ class FeishuConfigError(RuntimeError):
     """Raised when Feishu notification is not configured."""
 
 
+class FeishuDeliveryError(RuntimeError):
+    """Raised when Feishu rejects a notification delivery."""
+
+
 class FeishuNotifier:
     def __init__(
         self,
@@ -27,9 +31,13 @@ class FeishuNotifier:
         if not self.webhook_url:
             raise FeishuConfigError("FEISHU_WEBHOOK_URL is not configured")
         payload = {"msg_type": "text", "content": {"text": text}}
-        async with httpx.AsyncClient(timeout=self.timeout_seconds, transport=self.transport) as client:
+        async with httpx.AsyncClient(
+            timeout=self.timeout_seconds,
+            transport=self.transport,
+        ) as client:
             response = await client.post(self.webhook_url, json=payload)
             response.raise_for_status()
+        _raise_for_feishu_error(response)
 
 
 def format_feishu_message(
@@ -54,7 +62,10 @@ def format_feishu_message(
     lines.extend(_section("工程 AI 理由", review.reasons if review else []))
     lines.extend(["", "Codex 二次判断：", _analysis_summary(codex_analysis)])
     lines.extend(_section("关键价位", _analysis_list(codex_analysis, "key_levels")))
-    lines.extend(_section("等待确认", _analysis_list(codex_analysis, "next_steps") or (review.wait_for if review else [])))
+    wait_for = _analysis_list(codex_analysis, "next_steps")
+    if not wait_for and review:
+        wait_for = review.wait_for
+    lines.extend(_section("等待确认", wait_for))
     lines.extend(_section("失效条件", _analysis_list(codex_analysis, "invalidates")))
     risk_items = [*signal.risks]
     if review:
@@ -68,6 +79,32 @@ def format_feishu_message(
     lines.extend(_section("执行阻断", execution_blockers))
     lines.extend(["", "提醒：仅供盘中辅助判断，不自动下单。"])
     return "\n".join(lines)
+
+
+def _raise_for_feishu_error(response: httpx.Response) -> None:
+    try:
+        data = response.json()
+    except ValueError:
+        return
+    if not isinstance(data, dict):
+        return
+
+    if "StatusCode" in data:
+        status_code = data["StatusCode"]
+        if status_code != 0:
+            message = data.get("StatusMessage") or "Feishu delivery failed"
+            raise FeishuDeliveryError(
+                f"Feishu delivery failed: StatusCode={status_code}, message={message}"
+            )
+        return
+
+    if "code" in data:
+        code = data["code"]
+        if code != 0:
+            message = data.get("msg") or "Feishu delivery failed"
+            raise FeishuDeliveryError(
+                f"Feishu delivery failed: code={code}, message={message}"
+            )
 
 
 def _section(title: str, items: Iterable[str]) -> list[str]:
