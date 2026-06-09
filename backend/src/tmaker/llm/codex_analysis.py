@@ -114,6 +114,17 @@ class CodexAnalysisClient:
             return CodexAnalysis.model_validate_json(content).model_dump()
 
 
+class CodexSignalAnalyzer:
+    def __init__(self, client: CodexAnalysisClient, enabled: bool = True) -> None:
+        self.client = client
+        self.enabled = enabled
+
+    async def analyze(self, context: dict[str, Any]) -> dict[str, Any]:
+        if not self.enabled:
+            return fallback_codex_analysis(RuntimeError("CODEX_ANALYSIS_ENABLED is false"))
+        return await self.client.create_analysis(context)
+
+
 def fallback_codex_analysis(exc: Exception) -> dict[str, Any]:
     message = str(exc).strip() or exc.__class__.__name__
     return {

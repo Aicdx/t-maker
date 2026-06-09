@@ -5,11 +5,13 @@ import threading
 import time
 
 from fastapi.testclient import TestClient
+import httpx
 
 import tmaker.api.app as app_module
 from tmaker.api.app import create_app
 from tmaker.domain.models import Candle, MarketQuote
 from tmaker.market.akshare_provider import MarketDataChannelUnavailable, MarketDataUnavailable
+from tmaker.notify.feishu import FeishuConfigError, FeishuDeliveryError
 from tmaker.strategy.replay import ReplayPoint
 
 
@@ -111,6 +113,33 @@ class BlockingReviewClient(FakeReviewClient):
             "risks": ["趋势仍弱"],
             "wait_for": ["下一根 1 分钟 K 线不破新低"],
         }
+
+
+class FakeMonitorAnalyzer:
+    def __init__(self) -> None:
+        self.calls: list[dict] = []
+
+    async def analyze(self, context: dict) -> dict:
+        self.calls.append(context)
+        return {
+            "judgement": "wait",
+            "summary": "fake monitor analysis",
+            "key_levels": [],
+            "next_steps": [],
+            "invalidates": [],
+            "risk_notes": [],
+        }
+
+
+class FakeMonitorNotifier:
+    def __init__(self, exc: Exception | None = None) -> None:
+        self.exc = exc
+        self.messages: list[str] = []
+
+    async def send_text(self, text: str) -> None:
+        self.messages.append(text)
+        if self.exc is not None:
+            raise self.exc
 
 
 class FakeRepository:
@@ -402,6 +431,89 @@ def test_snapshot_falls_back_to_demo_data_when_provider_fails() -> None:
         "300308: empty；300502: empty；600487: empty；000636: empty"
     )
     assert payload["candles"]
+
+
+def test_monitor_status_endpoint_reports_state() -> None:
+    client = TestClient(
+        _test_app(
+            minute_provider=FakeProvider(_provider_candles()),
+            monitor_analyzer=FakeMonitorAnalyzer(),
+            monitor_notifier=FakeMonitorNotifier(),
+        )
+    )
+
+    response = client.get("/api/monitor/status")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["running"] is False
+    assert payload["notification_count"] == 0
+
+
+def test_monitor_start_and_stop_are_idempotent() -> None:
+    client = TestClient(
+        _test_app(
+            minute_provider=FakeProvider(_provider_candles()),
+            monitor_analyzer=FakeMonitorAnalyzer(),
+            monitor_notifier=FakeMonitorNotifier(),
+        )
+    )
+
+    start_response = client.post("/api/monitor/start")
+    second_start_response = client.post("/api/monitor/start")
+    stop_response = client.post("/api/monitor/stop")
+    second_stop_response = client.post("/api/monitor/stop")
+
+    assert start_response.status_code == 200
+    assert second_start_response.status_code == 200
+    assert stop_response.status_code == 200
+    assert second_stop_response.status_code == 200
+    assert second_stop_response.json()["running"] is False
+
+
+def test_monitor_test_feishu_reports_missing_webhook() -> None:
+    client = TestClient(
+        _test_app(
+            minute_provider=FakeProvider(_provider_candles()),
+            monitor_analyzer=FakeMonitorAnalyzer(),
+            monitor_notifier=FakeMonitorNotifier(FeishuConfigError("FEISHU_WEBHOOK_URL is not configured")),
+        )
+    )
+
+    response = client.post("/api/monitor/test-feishu")
+
+    assert response.status_code == 503
+    assert "FEISHU_WEBHOOK_URL" in response.json()["detail"]
+
+
+def test_monitor_test_feishu_maps_delivery_error_to_bad_gateway() -> None:
+    client = TestClient(
+        _test_app(
+            minute_provider=FakeProvider(_provider_candles()),
+            monitor_analyzer=FakeMonitorAnalyzer(),
+            monitor_notifier=FakeMonitorNotifier(FeishuDeliveryError("bad webhook")),
+        )
+    )
+
+    response = client.post("/api/monitor/test-feishu")
+
+    assert response.status_code == 502
+    assert "bad webhook" in response.json()["detail"]
+
+
+def test_monitor_test_feishu_maps_network_error_to_bad_gateway() -> None:
+    client = TestClient(
+        _test_app(
+            minute_provider=FakeProvider(_provider_candles()),
+            monitor_analyzer=FakeMonitorAnalyzer(),
+            monitor_notifier=FakeMonitorNotifier(httpx.ConnectError("network")),
+        )
+    )
+
+    response = client.post("/api/monitor/test-feishu")
+
+    assert response.status_code == 502
+    assert "network" in response.json()["detail"]
 
 
 def _provider_candles(symbol: str = "300308", close: float = 151.6) -> list[Candle]:

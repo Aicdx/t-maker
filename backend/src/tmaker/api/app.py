@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field, PrivateAttr
 
 from tmaker.config import PROJECT_DIR, get_settings
 from tmaker.domain.models import Candle, LlmReview, MarketQuote, Position, ProviderHealth, Signal
+from tmaker.llm.codex_analysis import CodexAnalysisClient, CodexSignalAnalyzer
 from tmaker.llm.context import build_review_context
 from tmaker.llm.openai_client import OpenAICompatibleClient
 from tmaker.llm.review import LlmReviewer, ReviewClient
@@ -20,6 +21,9 @@ from tmaker.market.akshare_provider import MarketDataChannelUnavailable, MarketD
 from tmaker.market.eastmoney_provider import EastmoneyHistoricalMinuteProvider
 from tmaker.market.bars import aggregate_five_minute
 from tmaker.market.tencent_provider import TencentHistoricalMinuteProvider, TencentMarketProvider
+from tmaker.monitor.policy import MonitorPolicy
+from tmaker.monitor.runner import MonitorRunner, SignalAnalyzer, TextNotifier
+from tmaker.notify.feishu import FeishuConfigError, FeishuDeliveryError, FeishuNotifier
 from tmaker.storage.postgres import PostgresRepository
 from tmaker.strategy.market_context import build_equal_weight_sector_candles, build_market_context
 from tmaker.strategy.replay import (
@@ -54,6 +58,8 @@ def create_app(
     minute_provider: TencentMarketProvider | None = None,
     review_client: ReviewClient | None = None,
     repository: PostgresRepository | None = None,
+    monitor_analyzer: SignalAnalyzer | None = None,
+    monitor_notifier: TextNotifier | None = None,
 ) -> FastAPI:
     app = FastAPI(title="T Maker API")
     state = _initial_state()
@@ -63,6 +69,37 @@ def create_app(
     day_provider = minute_provider or EastmoneyHistoricalMinuteProvider()
     reviewer = LlmReviewer(review_client or _default_review_client())
     repo = repository or PostgresRepository(settings.database_url)
+
+    class SnapshotRefreshService:
+        def refresh(self) -> dict:
+            _refresh_from_provider(state, provider, reviewer, repo)
+            return _snapshot(state)
+
+    snapshot_service = SnapshotRefreshService()
+    codex_client = CodexAnalysisClient(
+        base_url=settings.openai_base_url,
+        api_key=settings.openai_api_key,
+        model=settings.openai_model,
+        timeout_seconds=settings.openai_timeout_seconds,
+        wire_api=settings.openai_wire_api,
+        reasoning_effort=settings.openai_reasoning_effort,
+        disable_response_storage=settings.openai_disable_response_storage,
+    )
+    monitor_runner = MonitorRunner(
+        snapshot_service=snapshot_service,
+        analyzer=monitor_analyzer or CodexSignalAnalyzer(codex_client, enabled=settings.codex_analysis_enabled),
+        notifier=monitor_notifier or FeishuNotifier(
+            webhook_url=settings.feishu_webhook_url,
+            timeout_seconds=settings.feishu_timeout_seconds,
+        ),
+        policy=MonitorPolicy(
+            min_ai_confidence=settings.monitor_min_ai_confidence,
+            notify_hold=settings.monitor_notify_hold,
+            notify_suspected=settings.monitor_notify_suspected,
+        ),
+        interval_seconds=settings.monitor_interval_seconds,
+        dedup_window_minutes=settings.monitor_dedup_window_minutes,
+    )
 
     app.add_middleware(
         CORSMiddleware,
@@ -78,8 +115,42 @@ def create_app(
 
     @app.get("/api/snapshot")
     def snapshot() -> dict:
-        _refresh_from_provider(state, provider, reviewer, repo)
-        return _snapshot(state)
+        return snapshot_service.refresh()
+
+    @app.on_event("startup")
+    async def start_monitor_when_enabled() -> None:
+        if settings.monitor_auto_start:
+            await monitor_runner.start()
+
+    @app.on_event("shutdown")
+    async def stop_monitor_on_shutdown() -> None:
+        await monitor_runner.stop()
+
+    @app.get("/api/monitor/status")
+    def monitor_status() -> dict:
+        return monitor_runner.state.model_dump(mode="json")
+
+    @app.post("/api/monitor/start")
+    async def monitor_start() -> dict:
+        await monitor_runner.start()
+        return monitor_runner.state.model_dump(mode="json")
+
+    @app.post("/api/monitor/stop")
+    async def monitor_stop() -> dict:
+        await monitor_runner.stop()
+        return monitor_runner.state.model_dump(mode="json")
+
+    @app.post("/api/monitor/test-feishu")
+    async def monitor_test_feishu() -> dict:
+        try:
+            await monitor_runner.notifier.send_text(
+                "【T Maker 测试通知】飞书机器人已连通。\n提醒：仅供盘中辅助判断，不自动下单。"
+            )
+        except FeishuConfigError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        except (FeishuDeliveryError, httpx.HTTPError) as exc:
+            raise HTTPException(status_code=502, detail=_format_provider_error(exc)) from exc
+        return {"status": "ok"}
 
     @app.get("/api/trading-days")
     def trading_days(symbol: str) -> dict:
