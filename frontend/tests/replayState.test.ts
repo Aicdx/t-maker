@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
+  chartTradeDateLabel,
   dayMarketPayloadToReplay,
   replayPointReviewLabel,
   replaySourceLabel,
@@ -92,6 +93,25 @@ test('replaySourceLabel names live monitoring points separately from stored hist
 test('shiftCalendarDate moves by natural days instead of cached trading-day options', () => {
   assert.equal(shiftCalendarDate('2026-06-01', -1), '2026-05-31')
   assert.equal(shiftCalendarDate('2026-06-01', 1), '2026-06-02')
+})
+
+test('chartTradeDateLabel shows realtime snapshot date while monitoring', () => {
+  assert.equal(
+    chartTradeDateLabel({
+      monitorEnabled: true,
+      selectedTradeDate: '2026-06-08',
+      latestRealtimeTimestamp: '2026-06-09T10:23:00',
+    }),
+    '2026-06-09',
+  )
+  assert.equal(
+    chartTradeDateLabel({
+      monitorEnabled: false,
+      selectedTradeDate: '2026-06-08',
+      latestRealtimeTimestamp: '2026-06-09T10:23:00',
+    }),
+    '2026-06-08',
+  )
 })
 
 test('replayPointReviewLabel does not display pending points as AI hold', () => {

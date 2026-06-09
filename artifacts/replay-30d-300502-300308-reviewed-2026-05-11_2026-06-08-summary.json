@@ -1,0 +1,2256 @@
+{
+  "artifact_path": "D:\\it\\t-maker\\artifacts\\replay-30d-300502-300308-reviewed-2026-05-11_2026-06-08.json",
+  "summary_path": "D:\\it\\t-maker\\artifacts\\replay-30d-300502-300308-reviewed-2026-05-11_2026-06-08-summary.json",
+  "date_range": {
+    "latest_cached_trade_date": "2026-06-08",
+    "natural_start_date": "2026-05-09",
+    "covered_trading_days": [
+      "2026-05-11",
+      "2026-05-12",
+      "2026-05-13",
+      "2026-05-14",
+      "2026-05-15",
+      "2026-05-18",
+      "2026-05-19",
+      "2026-05-20",
+      "2026-05-21",
+      "2026-05-22",
+      "2026-05-25",
+      "2026-05-26",
+      "2026-05-27",
+      "2026-05-28",
+      "2026-05-29",
+      "2026-06-01",
+      "2026-06-02",
+      "2026-06-03",
+      "2026-06-04",
+      "2026-06-05",
+      "2026-06-08"
+    ]
+  },
+  "elapsed_seconds": 1656.37,
+  "summary": {
+    "trading_day_count": 21,
+    "candidate_count": 1657,
+    "buy_count": 257,
+    "sell_count": 1400,
+    "reviewed_count": 44,
+    "ai_buy_count": 9,
+    "ai_sell_count": 13,
+    "ai_hold_count": 178,
+    "ai_failed_count": 156,
+    "accuracy_checked_count": 22,
+    "accuracy_hit_count": 13,
+    "accuracy_rate_pct": 59.09
+  },
+  "symbol_summary": {
+    "300502": {
+      "point_count": 108,
+      "candidate_buy_count": 67,
+      "candidate_sell_count": 41,
+      "reviewed_count": 24,
+      "failed_count": 84,
+      "ai_buy_count": 4,
+      "ai_sell_count": 6,
+      "ai_hold_count": 98,
+      "accuracy_checked_count": 10,
+      "accuracy_hit_count": 6,
+      "accuracy_rate_pct": 60.0
+    },
+    "300308": {
+      "point_count": 92,
+      "candidate_buy_count": 64,
+      "candidate_sell_count": 28,
+      "reviewed_count": 20,
+      "failed_count": 72,
+      "ai_buy_count": 5,
+      "ai_sell_count": 7,
+      "ai_hold_count": 80,
+      "accuracy_checked_count": 12,
+      "accuracy_hit_count": 7,
+      "accuracy_rate_pct": 58.33
+    }
+  },
+  "day_summary": [
+    {
+      "date": "2026-05-11",
+      "candidate_count": 128,
+      "buy_count": 7,
+      "sell_count": 121,
+      "reviewed_count": 12,
+      "ai_buy_count": 2,
+      "ai_sell_count": 6,
+      "ai_hold_count": 4,
+      "ai_failed_count": 0,
+      "accuracy_checked_count": 8,
+      "accuracy_hit_count": 3,
+      "accuracy_rate_pct": 37.5
+    },
+    {
+      "date": "2026-05-12",
+      "candidate_count": 163,
+      "buy_count": 1,
+      "sell_count": 162,
+      "reviewed_count": 3,
+      "ai_buy_count": 1,
+      "ai_sell_count": 2,
+      "ai_hold_count": 4,
+      "ai_failed_count": 4,
+      "accuracy_checked_count": 3,
+      "accuracy_hit_count": 2,
+      "accuracy_rate_pct": 66.67
+    },
+    {
+      "date": "2026-05-13",
+      "candidate_count": 183,
+      "buy_count": 2,
+      "sell_count": 181,
+      "reviewed_count": 3,
+      "ai_buy_count": 2,
+      "ai_sell_count": 1,
+      "ai_hold_count": 2,
+      "ai_failed_count": 2,
+      "accuracy_checked_count": 3,
+      "accuracy_hit_count": 3,
+      "accuracy_rate_pct": 100.0
+    },
+    {
+      "date": "2026-05-14",
+      "candidate_count": 31,
+      "buy_count": 31,
+      "sell_count": 0,
+      "reviewed_count": 7,
+      "ai_buy_count": 2,
+      "ai_sell_count": 0,
+      "ai_hold_count": 13,
+      "ai_failed_count": 8,
+      "accuracy_checked_count": 2,
+      "accuracy_hit_count": 1,
+      "accuracy_rate_pct": 50.0
+    },
+    {
+      "date": "2026-05-15",
+      "candidate_count": 48,
+      "buy_count": 41,
+      "sell_count": 7,
+      "reviewed_count": 6,
+      "ai_buy_count": 0,
+      "ai_sell_count": 0,
+      "ai_hold_count": 17,
+      "ai_failed_count": 11,
+      "accuracy_checked_count": 0,
+      "accuracy_hit_count": 0,
+      "accuracy_rate_pct": null
+    },
+    {
+      "date": "2026-05-18",
+      "candidate_count": 27,
+      "buy_count": 23,
+      "sell_count": 4,
+      "reviewed_count": 2,
+      "ai_buy_count": 0,
+      "ai_sell_count": 0,
+      "ai_hold_count": 13,
+      "ai_failed_count": 11,
+      "accuracy_checked_count": 0,
+      "accuracy_hit_count": 0,
+      "accuracy_rate_pct": null
+    },
+    {
+      "date": "2026-05-19",
+      "candidate_count": 20,
+      "buy_count": 20,
+      "sell_count": 0,
+      "reviewed_count": 0,
+      "ai_buy_count": 0,
+      "ai_sell_count": 0,
+      "ai_hold_count": 7,
+      "ai_failed_count": 7,
+      "accuracy_checked_count": 0,
+      "accuracy_hit_count": 0,
+      "accuracy_rate_pct": null
+    },
+    {
+      "date": "2026-05-20",
+      "candidate_count": 48,
+      "buy_count": 22,
+      "sell_count": 26,
+      "reviewed_count": 1,
+      "ai_buy_count": 0,
+      "ai_sell_count": 1,
+      "ai_hold_count": 11,
+      "ai_failed_count": 11,
+      "accuracy_checked_count": 1,
+      "accuracy_hit_count": 0,
+      "accuracy_rate_pct": 0.0
+    },
+    {
+      "date": "2026-05-21",
+      "candidate_count": 25,
+      "buy_count": 19,
+      "sell_count": 6,
+      "reviewed_count": 2,
+      "ai_buy_count": 0,
+      "ai_sell_count": 0,
+      "ai_hold_count": 16,
+      "ai_failed_count": 14,
+      "accuracy_checked_count": 0,
+      "accuracy_hit_count": 0,
+      "accuracy_rate_pct": null
+    },
+    {
+      "date": "2026-05-22",
+      "candidate_count": 52,
+      "buy_count": 5,
+      "sell_count": 47,
+      "reviewed_count": 0,
+      "ai_buy_count": 0,
+      "ai_sell_count": 0,
+      "ai_hold_count": 4,
+      "ai_failed_count": 4,
+      "accuracy_checked_count": 0,
+      "accuracy_hit_count": 0,
+      "accuracy_rate_pct": null
+    },
+    {
+      "date": "2026-05-25",
+      "candidate_count": 106,
+      "buy_count": 1,
+      "sell_count": 105,
+      "reviewed_count": 2,
+      "ai_buy_count": 0,
+      "ai_sell_count": 2,
+      "ai_hold_count": 6,
+      "ai_failed_count": 6,
+      "accuracy_checked_count": 2,
+      "accuracy_hit_count": 1,
+      "accuracy_rate_pct": 50.0
+    },
+    {
+      "date": "2026-05-26",
+      "candidate_count": 131,
+      "buy_count": 7,
+      "sell_count": 124,
+      "reviewed_count": 4,
+      "ai_buy_count": 1,
+      "ai_sell_count": 1,
+      "ai_hold_count": 11,
+      "ai_failed_count": 9,
+      "accuracy_checked_count": 2,
+      "accuracy_hit_count": 2,
+      "accuracy_rate_pct": 100.0
+    },
+    {
+      "date": "2026-05-27",
+      "candidate_count": 73,
+      "buy_count": 14,
+      "sell_count": 59,
+      "reviewed_count": 0,
+      "ai_buy_count": 0,
+      "ai_sell_count": 0,
+      "ai_hold_count": 8,
+      "ai_failed_count": 8,
+      "accuracy_checked_count": 0,
+      "accuracy_hit_count": 0,
+      "accuracy_rate_pct": null
+    },
+    {
+      "date": "2026-05-28",
+      "candidate_count": 104,
+      "buy_count": 1,
+      "sell_count": 103,
+      "reviewed_count": 1,
+      "ai_buy_count": 0,
+      "ai_sell_count": 0,
+      "ai_hold_count": 6,
+      "ai_failed_count": 5,
+      "accuracy_checked_count": 0,
+      "accuracy_hit_count": 0,
+      "accuracy_rate_pct": null
+    },
+    {
+      "date": "2026-05-29",
+      "candidate_count": 32,
+      "buy_count": 26,
+      "sell_count": 6,
+      "reviewed_count": 0,
+      "ai_buy_count": 0,
+      "ai_sell_count": 0,
+      "ai_hold_count": 13,
+      "ai_failed_count": 13,
+      "accuracy_checked_count": 0,
+      "accuracy_hit_count": 0,
+      "accuracy_rate_pct": null
+    },
+    {
+      "date": "2026-06-01",
+      "candidate_count": 26,
+      "buy_count": 17,
+      "sell_count": 9,
+      "reviewed_count": 0,
+      "ai_buy_count": 0,
+      "ai_sell_count": 0,
+      "ai_hold_count": 13,
+      "ai_failed_count": 13,
+      "accuracy_checked_count": 0,
+      "accuracy_hit_count": 0,
+      "accuracy_rate_pct": null
+    },
+    {
+      "date": "2026-06-02",
+      "candidate_count": 196,
+      "buy_count": 5,
+      "sell_count": 191,
+      "reviewed_count": 1,
+      "ai_buy_count": 1,
+      "ai_sell_count": 0,
+      "ai_hold_count": 9,
+      "ai_failed_count": 9,
+      "accuracy_checked_count": 1,
+      "accuracy_hit_count": 1,
+      "accuracy_rate_pct": 100.0
+    },
+    {
+      "date": "2026-06-03",
+      "candidate_count": 237,
+      "buy_count": 6,
+      "sell_count": 231,
+      "reviewed_count": 0,
+      "ai_buy_count": 0,
+      "ai_sell_count": 0,
+      "ai_hold_count": 11,
+      "ai_failed_count": 11,
+      "accuracy_checked_count": 0,
+      "accuracy_hit_count": 0,
+      "accuracy_rate_pct": null
+    },
+    {
+      "date": "2026-06-04",
+      "candidate_count": 2,
+      "buy_count": 1,
+      "sell_count": 1,
+      "reviewed_count": 0,
+      "ai_buy_count": 0,
+      "ai_sell_count": 0,
+      "ai_hold_count": 2,
+      "ai_failed_count": 2,
+      "accuracy_checked_count": 0,
+      "accuracy_hit_count": 0,
+      "accuracy_rate_pct": null
+    },
+    {
+      "date": "2026-06-05",
+      "candidate_count": 0,
+      "buy_count": 0,
+      "sell_count": 0,
+      "reviewed_count": 0,
+      "ai_buy_count": 0,
+      "ai_sell_count": 0,
+      "ai_hold_count": 0,
+      "ai_failed_count": 0,
+      "accuracy_checked_count": 0,
+      "accuracy_hit_count": 0,
+      "accuracy_rate_pct": null
+    },
+    {
+      "date": "2026-06-08",
+      "candidate_count": 25,
+      "buy_count": 8,
+      "sell_count": 17,
+      "reviewed_count": 0,
+      "ai_buy_count": 0,
+      "ai_sell_count": 0,
+      "ai_hold_count": 8,
+      "ai_failed_count": 8,
+      "accuracy_checked_count": 0,
+      "accuracy_hit_count": 0,
+      "accuracy_rate_pct": null
+    }
+  ],
+  "failed_points": [
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-12T10:01:00",
+      "action": "sell",
+      "price": 593.13,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-12T10:26:00",
+      "action": "sell",
+      "price": 598.98,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-12T11:16:00",
+      "action": "sell",
+      "price": 598.64,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-12T13:22:00",
+      "action": "sell",
+      "price": 1011.25,
+      "rule_ids": [
+        "intraday_gain_session_vwap_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-13T10:21:00",
+      "action": "sell",
+      "price": 599.88,
+      "rule_ids": [
+        "suspected_vwap_high_stretch",
+        "restore_after_intraday_buy"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-13T13:01:00",
+      "action": "sell",
+      "price": 610.22,
+      "rule_ids": [
+        "suspected_vwap_high_stretch",
+        "restore_after_intraday_buy"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-14T10:34:00",
+      "action": "buy",
+      "price": 1049.41,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-14T11:18:00",
+      "action": "buy",
+      "price": 1033.0,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-14T13:02:00",
+      "action": "buy",
+      "price": 1037.55,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-14T10:09:00",
+      "action": "buy",
+      "price": 627.78,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-14T10:43:00",
+      "action": "buy",
+      "price": 611.44,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-14T11:18:00",
+      "action": "buy",
+      "price": 611.0,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-14T13:02:00",
+      "action": "buy",
+      "price": 612.12,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-14T13:36:00",
+      "action": "buy",
+      "price": 615.78,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-15T09:43:00",
+      "action": "buy",
+      "price": 1070.74,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-15T09:49:00",
+      "action": "buy",
+      "price": 1056.99,
+      "rule_ids": [
+        "suspected_vwap_low_reversal"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-15T09:57:00",
+      "action": "buy",
+      "price": 1049.0,
+      "rule_ids": [
+        "suspected_vwap_low_reversal"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-15T10:46:00",
+      "action": "buy",
+      "price": 1053.0,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-15T13:06:00",
+      "action": "buy",
+      "price": 1055.1,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-15T13:55:00",
+      "action": "buy",
+      "price": 1043.26,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-15T10:10:00",
+      "action": "buy",
+      "price": 598.0,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ReadTimeout"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-15T10:39:00",
+      "action": "buy",
+      "price": 601.38,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-15T11:04:00",
+      "action": "sell",
+      "price": 621.0,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-15T14:07:00",
+      "action": "buy",
+      "price": 604.34,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-15T14:36:00",
+      "action": "buy",
+      "price": 602.0,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ReadTimeout"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-18T09:57:00",
+      "action": "sell",
+      "price": 1071.99,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-18T11:04:00",
+      "action": "buy",
+      "price": 1045.18,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-18T11:15:00",
+      "action": "buy",
+      "price": 1037.55,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-18T13:11:00",
+      "action": "buy",
+      "price": 1049.87,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-18T13:19:00",
+      "action": "buy",
+      "price": 1042.17,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-18T14:01:00",
+      "action": "buy",
+      "price": 1038.08,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-18T14:25:00",
+      "action": "buy",
+      "price": 1042.05,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-18T13:02:00",
+      "action": "buy",
+      "price": 601.08,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-18T13:34:00",
+      "action": "buy",
+      "price": 600.01,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-18T14:01:00",
+      "action": "buy",
+      "price": 594.79,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-18T14:38:00",
+      "action": "buy",
+      "price": 597.27,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-19T09:53:00",
+      "action": "buy",
+      "price": 1002.4,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-19T10:07:00",
+      "action": "buy",
+      "price": 994.77,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-19T13:14:00",
+      "action": "buy",
+      "price": 998.25,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-19T10:07:00",
+      "action": "buy",
+      "price": 564.76,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-19T10:17:00",
+      "action": "buy",
+      "price": 561.72,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-19T10:50:00",
+      "action": "buy",
+      "price": 564.29,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-19T13:21:00",
+      "action": "buy",
+      "price": 566.76,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-20T09:50:00",
+      "action": "sell",
+      "price": 1062.25,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-20T10:35:00",
+      "action": "buy",
+      "price": 1045.99,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-20T10:48:00",
+      "action": "buy",
+      "price": 1032.51,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-20T13:02:00",
+      "action": "buy",
+      "price": 1032.39,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-20T13:49:00",
+      "action": "buy",
+      "price": 1032.78,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-20T14:23:00",
+      "action": "buy",
+      "price": 1038.87,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-20T10:45:00",
+      "action": "buy",
+      "price": 579.0,
+      "rule_ids": [
+        "pullback_low_rebound",
+        "restore_after_intraday_sell"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-20T10:55:00",
+      "action": "buy",
+      "price": 575.13,
+      "rule_ids": [
+        "pullback_low_rebound",
+        "restore_after_intraday_sell"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-20T11:30:00",
+      "action": "buy",
+      "price": 577.9,
+      "rule_ids": [
+        "pullback_low_rebound",
+        "restore_after_intraday_sell"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-20T13:02:00",
+      "action": "buy",
+      "price": 580.03,
+      "rule_ids": [
+        "pullback_low_rebound",
+        "restore_after_intraday_sell"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-20T13:32:00",
+      "action": "buy",
+      "price": 577.0,
+      "rule_ids": [
+        "pullback_low_rebound",
+        "restore_after_intraday_sell"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-21T09:41:00",
+      "action": "buy",
+      "price": 1025.64,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-21T09:50:00",
+      "action": "sell",
+      "price": 1055.0,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-21T10:43:00",
+      "action": "buy",
+      "price": 1033.63,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-21T11:00:00",
+      "action": "buy",
+      "price": 1033.4,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-21T13:18:00",
+      "action": "buy",
+      "price": 1025.24,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-21T14:27:00",
+      "action": "buy",
+      "price": 1008.47,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-21T14:35:00",
+      "action": "buy",
+      "price": 1000.8,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-21T09:44:00",
+      "action": "buy",
+      "price": 584.49,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-21T09:46:00",
+      "action": "sell",
+      "price": 599.01,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-21T10:42:00",
+      "action": "buy",
+      "price": 587.51,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-21T13:36:00",
+      "action": "buy",
+      "price": 587.97,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-21T14:15:00",
+      "action": "buy",
+      "price": 580.07,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-21T14:27:00",
+      "action": "buy",
+      "price": 576.48,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-21T14:36:00",
+      "action": "buy",
+      "price": 569.95,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-22T09:48:00",
+      "action": "buy",
+      "price": 1010.89,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-22T09:43:00",
+      "action": "buy",
+      "price": 575.73,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-22T10:22:00",
+      "action": "buy",
+      "price": 575.19,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-22T14:02:00",
+      "action": "sell",
+      "price": 603.19,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-25T10:24:00",
+      "action": "sell",
+      "price": 1061.45,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-25T09:51:00",
+      "action": "buy",
+      "price": 603.76,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-25T10:17:00",
+      "action": "sell",
+      "price": 619.25,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-25T10:29:00",
+      "action": "sell",
+      "price": 634.95,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-25T13:39:00",
+      "action": "sell",
+      "price": 645.9,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-25T14:49:00",
+      "action": "sell",
+      "price": 658.8,
+      "rule_ids": [
+        "intraday_gain_session_vwap_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-26T09:55:00",
+      "action": "buy",
+      "price": 1089.16,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-26T11:16:00",
+      "action": "buy",
+      "price": 1083.11,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-26T13:55:00",
+      "action": "buy",
+      "price": 1090.02,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-26T09:39:00",
+      "action": "sell",
+      "price": 685.0,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-26T10:10:00",
+      "action": "sell",
+      "price": 692.88,
+      "rule_ids": [
+        "intraday_gain_session_vwap_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-26T10:34:00",
+      "action": "sell",
+      "price": 697.57,
+      "rule_ids": [
+        "intraday_gain_session_vwap_stretch",
+        "market_context_sell_boost"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-26T13:04:00",
+      "action": "sell",
+      "price": 692.49,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-26T14:11:00",
+      "action": "sell",
+      "price": 694.0,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-26T14:43:00",
+      "action": "sell",
+      "price": 703.37,
+      "rule_ids": [
+        "intraday_gain_session_vwap_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-27T10:11:00",
+      "action": "sell",
+      "price": 1131.58,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-27T13:05:00",
+      "action": "sell",
+      "price": 1138.75,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-27T13:43:00",
+      "action": "buy",
+      "price": 1105.15,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-27T14:50:00",
+      "action": "buy",
+      "price": 1109.45,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-27T10:18:00",
+      "action": "sell",
+      "price": 711.85,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-27T13:46:00",
+      "action": "buy",
+      "price": 686.3,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-27T14:06:00",
+      "action": "buy",
+      "price": 689.98,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-27T14:50:00",
+      "action": "buy",
+      "price": 692.52,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-28T13:22:00",
+      "action": "sell",
+      "price": 1149.67,
+      "rule_ids": [
+        "intraday_gain_session_vwap_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-28T13:36:00",
+      "action": "sell",
+      "price": 1184.95,
+      "rule_ids": [
+        "intraday_gain_session_vwap_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-28T14:36:00",
+      "action": "sell",
+      "price": 1196.35,
+      "rule_ids": [
+        "intraday_gain_session_vwap_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-28T13:27:00",
+      "action": "sell",
+      "price": 711.35,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-28T14:19:00",
+      "action": "sell",
+      "price": 723.37,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-29T09:42:00",
+      "action": "buy",
+      "price": 1186.14,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-29T10:13:00",
+      "action": "buy",
+      "price": 1163.88,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-29T10:37:00",
+      "action": "sell",
+      "price": 1198.0,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-29T11:11:00",
+      "action": "buy",
+      "price": 1165.65,
+      "rule_ids": [
+        "suspected_vwap_low_reversal"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-29T11:12:00",
+      "action": "buy",
+      "price": 1170.28,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-05-29T14:26:00",
+      "action": "buy",
+      "price": 1162.3,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-29T09:51:00",
+      "action": "buy",
+      "price": 707.85,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-29T10:13:00",
+      "action": "buy",
+      "price": 705.0,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-29T10:25:00",
+      "action": "sell",
+      "price": 724.66,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-29T10:39:00",
+      "action": "sell",
+      "price": 727.72,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-29T14:09:00",
+      "action": "buy",
+      "price": 711.61,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-29T14:26:00",
+      "action": "buy",
+      "price": 707.43,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-05-29T14:51:00",
+      "action": "buy",
+      "price": 706.54,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-06-01T09:46:00",
+      "action": "sell",
+      "price": 1176.8,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-06-01T10:44:00",
+      "action": "buy",
+      "price": 1140.82,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-06-01T11:00:00",
+      "action": "buy",
+      "price": 1127.65,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-06-01T11:18:00",
+      "action": "buy",
+      "price": 1119.13,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-06-01T14:08:00",
+      "action": "buy",
+      "price": 1139.2,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-06-01T14:33:00",
+      "action": "buy",
+      "price": 1134.0,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-06-01T14:46:00",
+      "action": "buy",
+      "price": 1128.0,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-06-01T09:40:00",
+      "action": "buy",
+      "price": 677.71,
+      "rule_ids": [
+        "suspected_vwap_low_reversal"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-06-01T09:49:00",
+      "action": "sell",
+      "price": 701.75,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-06-01T10:44:00",
+      "action": "buy",
+      "price": 688.47,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-06-01T10:56:00",
+      "action": "buy",
+      "price": 682.12,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-06-01T14:29:00",
+      "action": "buy",
+      "price": 682.98,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-06-01T14:51:00",
+      "action": "buy",
+      "price": 681.0,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-06-02T09:46:00",
+      "action": "buy",
+      "price": 1154.0,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-06-02T11:01:00",
+      "action": "sell",
+      "price": 1200.0,
+      "rule_ids": [
+        "suspected_vwap_high_stretch",
+        "restore_after_intraday_buy"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-06-02T13:07:00",
+      "action": "sell",
+      "price": 1204.99,
+      "rule_ids": [
+        "suspected_vwap_high_stretch",
+        "restore_after_intraday_buy"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-06-02T09:34:00",
+      "action": "sell",
+      "price": 719.61,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-06-02T09:54:00",
+      "action": "buy",
+      "price": 707.09,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-06-02T10:45:00",
+      "action": "sell",
+      "price": 724.95,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-06-02T10:57:00",
+      "action": "sell",
+      "price": 729.2,
+      "rule_ids": [
+        "intraday_gain_session_vwap_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-06-02T11:19:00",
+      "action": "sell",
+      "price": 739.6,
+      "rule_ids": [
+        "intraday_gain_session_vwap_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-06-02T13:24:00",
+      "action": "sell",
+      "price": 749.24,
+      "rule_ids": [
+        "intraday_gain_session_vwap_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-06-03T09:56:00",
+      "action": "sell",
+      "price": 1273.86,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-06-03T10:28:00",
+      "action": "sell",
+      "price": 1288.0,
+      "rule_ids": [
+        "intraday_gain_session_vwap_stretch",
+        "market_sector_uptrend_sell_downgrade"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-06-03T11:25:00",
+      "action": "sell",
+      "price": 1307.4,
+      "rule_ids": [
+        "intraday_gain_session_vwap_stretch",
+        "market_sector_uptrend_sell_downgrade"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-06-03T13:14:00",
+      "action": "sell",
+      "price": 1318.77,
+      "rule_ids": [
+        "intraday_gain_session_vwap_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-06-03T14:25:00",
+      "action": "buy",
+      "price": 1262.02,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-06-03T09:43:00",
+      "action": "sell",
+      "price": 786.97,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-06-03T10:08:00",
+      "action": "sell",
+      "price": 804.16,
+      "rule_ids": [
+        "intraday_gain_session_vwap_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-06-03T10:25:00",
+      "action": "sell",
+      "price": 807.1,
+      "rule_ids": [
+        "intraday_gain_session_vwap_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-06-03T14:14:00",
+      "action": "buy",
+      "price": 789.0,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-06-03T14:35:00",
+      "action": "buy",
+      "price": 763.34,
+      "rule_ids": [
+        "suspected_vwap_low_reversal"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-06-03T14:46:00",
+      "action": "buy",
+      "price": 782.0,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-06-04T09:54:00",
+      "action": "sell",
+      "price": 784.5,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-06-04T10:54:00",
+      "action": "buy",
+      "price": 767.4,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-06-08T09:37:00",
+      "action": "sell",
+      "price": 1165.43,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-06-08T10:17:00",
+      "action": "sell",
+      "price": 1178.5,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-06-08T10:44:00",
+      "action": "sell",
+      "price": 1178.72,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-06-08T13:02:00",
+      "action": "buy",
+      "price": 1153.97,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-06-08T13:34:00",
+      "action": "buy",
+      "price": 1150.99,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300308",
+      "timestamp": "2026-06-08T13:47:00",
+      "action": "buy",
+      "price": 1140.97,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-06-08T10:40:00",
+      "action": "sell",
+      "price": 739.99,
+      "rule_ids": [
+        "suspected_vwap_high_stretch"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    },
+    {
+      "symbol": "300502",
+      "timestamp": "2026-06-08T13:44:00",
+      "action": "buy",
+      "price": 715.23,
+      "rule_ids": [
+        "pullback_low_rebound"
+      ],
+      "execution_blockers": [
+        "模型复核失败：ConnectError"
+      ]
+    }
+  ]
+}

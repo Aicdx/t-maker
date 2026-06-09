@@ -26,6 +26,7 @@ import {
 import { FinancialChart } from './FinancialChart'
 import { isAshareTradingTime, monitorStatus, type MonitorStatus } from './marketHours'
 import {
+  chartTradeDateLabel,
   dayMarketPayloadToReplay,
   replayPointReviewLabel,
   replaySourceLabel,
@@ -524,6 +525,16 @@ function App() {
     () => quoteSummary?.reference ?? buildQuoteSummary(chartData)?.reference ?? null,
     [chartData, quoteSummary?.reference],
   )
+  const latestRealtimeTimestamp = last(
+    (snapshot?.chart_series.realtime ?? snapshot?.candles ?? []).filter(
+      (candle) => candle.symbol === selectedSymbol,
+    ),
+  )?.timestamp
+  const visibleTradeDate = chartTradeDateLabel({
+    monitorEnabled,
+    selectedTradeDate,
+    latestRealtimeTimestamp,
+  })
   const selectedReplayPoints = useMemo(
     () =>
       (playbackStatus === 'idle' ? (replay?.points ?? []) : playbackPoints).filter(
@@ -692,7 +703,9 @@ function App() {
               <PanelTitle icon={<ChartLineUp size={18} />} title="分时与信号" />
               <div className="chart-tools">
                 <TradeDateControl
-                  value={selectedTradeDate}
+                  value={visibleTradeDate}
+                  reviewValue={selectedTradeDate}
+                  monitoring={monitorEnabled}
                   days={tradingDays}
                   loading={dayLoading}
                   onChange={(date) => void changeTradeDate(date)}
@@ -896,6 +909,8 @@ function ReplayDateTabs({
 
 function TradeDateControl({
   value,
+  reviewValue,
+  monitoring,
   days,
   loading,
   onChange,
@@ -903,6 +918,8 @@ function TradeDateControl({
   onNext,
 }: {
   value: string
+  reviewValue: string
+  monitoring: boolean
   days: string[]
   loading: boolean
   onChange: (date: string) => void
@@ -929,6 +946,9 @@ function TradeDateControl({
           <CalendarBlank size={15} />
           <span>{value || '选择日期'}</span>
         </button>
+        {monitoring && reviewValue && reviewValue !== value && (
+          <small className="date-review-hint">复核 {reviewValue}</small>
+        )}
         {open && (
           <div className="date-picker-panel">
             <DayPicker

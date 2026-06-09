@@ -411,7 +411,7 @@ def _snapshot(state: AppState) -> dict:
             "one_minute": [candle.model_dump(mode="json") for candle in one_minute],
             "five_minute": [candle.model_dump(mode="json") for candle in five_minute],
         },
-        "signals": [signal.model_dump(mode="json") for signal in state.signals[-20:]],
+        "signals": [signal.model_dump(mode="json") for signal in _visible_realtime_signals(state.signals)],
         "provider_health": state.provider_health.model_dump(mode="json"),
     }
 
@@ -689,9 +689,30 @@ def _review_mode(review: bool) -> str:
 def _upsert_signal(state: AppState, signal: Signal) -> None:
     for index, existing in enumerate(state.signals):
         if existing.symbol == signal.symbol and existing.timestamp == signal.timestamp:
+            if _should_keep_existing_realtime_signal(existing, signal):
+                return
             state.signals[index] = signal
             return
     state.signals.append(signal)
+
+
+def _visible_realtime_signals(signals: list[Signal], recent_limit: int = 20) -> list[Signal]:
+    recent = signals[-recent_limit:]
+    visible_by_key = {
+        (signal.symbol, signal.timestamp, signal.kind, signal.action): signal for signal in recent
+    }
+    for signal in signals:
+        if signal.needs_llm_review and signal.llm_status in {"ok", "failed"}:
+            visible_by_key.setdefault((signal.symbol, signal.timestamp, signal.kind, signal.action), signal)
+    return sorted(visible_by_key.values(), key=lambda item: item.timestamp)
+
+
+def _should_keep_existing_realtime_signal(existing: Signal, incoming: Signal) -> bool:
+    return (
+        existing.needs_llm_review
+        and existing.llm_status in {"ok", "failed"}
+        and not incoming.needs_llm_review
+    )
 
 
 def _review_candidate_signal(

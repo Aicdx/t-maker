@@ -191,6 +191,9 @@ button {
 
 .date-picker-popover {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .date-picker-trigger {
@@ -211,6 +214,12 @@ button {
 
 .date-picker-trigger span {
   font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+}
+
+.date-review-hint {
+  color: #687570;
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 .date-picker-panel {

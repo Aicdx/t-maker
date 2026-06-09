@@ -99,3 +99,16 @@ export function shiftCalendarDate(value: string, offsetDays: number) {
   date.setUTCDate(date.getUTCDate() + offsetDays)
   return date.toISOString().slice(0, 10)
 }
+
+export function chartTradeDateLabel({
+  monitorEnabled,
+  selectedTradeDate,
+  latestRealtimeTimestamp,
+}: {
+  monitorEnabled: boolean
+  selectedTradeDate: string
+  latestRealtimeTimestamp?: string | null
+}) {
+  if (monitorEnabled && latestRealtimeTimestamp) return latestRealtimeTimestamp.slice(0, 10)
+  return selectedTradeDate
+}

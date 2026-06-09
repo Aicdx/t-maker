@@ -521,6 +521,118 @@ def test_snapshot_does_not_review_same_realtime_candidate_twice() -> None:
     assert buy_signal["llm_review"]["confidence"] == 0.64
 
 
+def test_realtime_hold_does_not_replace_existing_reviewed_candidate() -> None:
+    reviewed_candidate = app_module.Signal(
+        symbol="600487",
+        timestamp=datetime(2026, 6, 5, 10, 10),
+        kind="candidate_buy",
+        action="buy",
+        confidence=0.64,
+        rule_ids=["pullback_low_rebound"],
+        reason="低位回抽",
+        risks=[],
+        source_fresh=True,
+        llm_status="ok",
+        llm_review={
+            "action": "buy",
+            "confidence": 0.64,
+            "summary": "模型确认可作为低吸观察点",
+            "reasons": ["价格低于 VWAP"],
+            "risks": [],
+            "wait_for": [],
+        },
+    )
+    hold = app_module.Signal(
+        symbol="600487",
+        timestamp=datetime(2026, 6, 5, 10, 10),
+        kind="hold",
+        action="hold",
+        confidence=0,
+        rule_ids=[],
+        reason="未满足候选条件",
+        risks=[],
+        source_fresh=True,
+        llm_status="not_requested",
+    )
+    state = app_module.AppState(
+        watchlist=[],
+        positions=[],
+        candles=[],
+        signals=[reviewed_candidate],
+        provider_health=app_module.ProviderHealth(provider="test", symbol="600487"),
+    )
+
+    app_module._upsert_signal(state, hold)
+
+    assert len(state.signals) == 1
+    assert state.signals[0].kind == "candidate_buy"
+    assert state.signals[0].llm_status == "ok"
+
+
+def test_snapshot_keeps_reviewed_candidates_beyond_recent_hold_window() -> None:
+    reviewed_candidate = app_module.Signal(
+        symbol="600487",
+        timestamp=datetime(2026, 6, 5, 10, 10),
+        kind="candidate_buy",
+        action="buy",
+        confidence=0.64,
+        rule_ids=["pullback_low_rebound"],
+        reason="低位回抽",
+        risks=[],
+        source_fresh=True,
+        llm_status="ok",
+        llm_review={
+            "action": "buy",
+            "confidence": 0.64,
+            "summary": "模型确认可作为低吸观察点",
+            "reasons": ["价格低于 VWAP"],
+            "risks": [],
+            "wait_for": [],
+        },
+    )
+    later_holds = [
+        app_module.Signal(
+            symbol="600487",
+            timestamp=datetime(2026, 6, 5, 10, 11 + index),
+            kind="hold",
+            action="hold",
+            confidence=0,
+            rule_ids=[],
+            reason="未满足候选条件",
+            risks=[],
+            source_fresh=True,
+            llm_status="not_requested",
+        )
+        for index in range(21)
+    ]
+    state = app_module.AppState(
+        watchlist=[],
+        positions=[],
+        candles=[
+            app_module.Candle(
+                symbol="600487",
+                timestamp=datetime(2026, 6, 5, 10, 31),
+                open=10,
+                high=10,
+                low=10,
+                close=10,
+                volume=1000,
+            )
+        ],
+        signals=[reviewed_candidate, *later_holds],
+        provider_health=app_module.ProviderHealth(provider="test", symbol="600487"),
+    )
+
+    payload = app_module._snapshot(state)
+
+    assert any(
+        signal["timestamp"] == "2026-06-05T10:10:00"
+        and signal["kind"] == "candidate_buy"
+        and signal["llm_status"] == "ok"
+        for signal in payload["signals"]
+    )
+
+
 def test_snapshot_merges_realtime_pullback_buy_cluster_like_replay() -> None:
     candles = {
         "600487": [
