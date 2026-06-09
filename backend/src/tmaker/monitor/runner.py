@@ -72,7 +72,7 @@ class MonitorRunner:
         if not force and not is_ashare_trading_time(current):
             return
         try:
-            payload = self.snapshot_service.refresh()
+            payload = await asyncio.to_thread(self.snapshot_service.refresh)
             await self._notify_payload(payload, current)
             self.state.last_success_at = current
             self.state.last_error = None

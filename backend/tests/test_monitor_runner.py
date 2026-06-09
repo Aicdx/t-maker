@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 
 import pytest
@@ -71,6 +72,14 @@ class FakeSnapshotService:
         }
 
 
+class AsyncioRunSnapshotService:
+    def refresh(self) -> dict:
+        async def _inner() -> dict:
+            return {"signals": [], "quotes": {}}
+
+        return asyncio.run(_inner())
+
+
 class FakeAnalyzer:
     def __init__(self, fail: bool = False) -> None:
         self.fail = fail
@@ -140,6 +149,20 @@ async def test_tick_sends_one_notification_for_eligible_signal() -> None:
     assert len(notifier.messages) == 1
     assert "Codex 二次判断" in notifier.messages[0]
     assert runner.state.notification_count == 1
+    assert runner.state.last_error is None
+
+
+@pytest.mark.asyncio
+async def test_tick_runs_sync_snapshot_refresh_outside_event_loop() -> None:
+    runner = MonitorRunner(
+        snapshot_service=AsyncioRunSnapshotService(),
+        analyzer=FakeAnalyzer(),
+        notifier=FakeNotifier(),
+        policy=MonitorPolicy(min_ai_confidence=0.6),
+    )
+
+    await runner.tick(now=datetime(2026, 6, 9, 10, 24), force=True)
+
     assert runner.state.last_error is None
 
 
