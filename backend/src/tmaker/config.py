@@ -18,6 +18,15 @@ class Settings(BaseSettings):
     openai_reasoning_effort: str | None = None
     openai_disable_response_storage: bool = True
     openai_timeout_seconds: float = 18
+    monitor_auto_start: bool = False
+    monitor_interval_seconds: float = 30
+    monitor_min_ai_confidence: float = 0.6
+    monitor_notify_hold: bool = False
+    monitor_notify_suspected: bool = True
+    monitor_dedup_window_minutes: int = 240
+    codex_analysis_enabled: bool = True
+    feishu_webhook_url: str = ""
+    feishu_timeout_seconds: float = 8
 
     model_config = SettingsConfigDict(
         env_file=(PROJECT_DIR / ".env", BACKEND_DIR / ".env", ".env"),
