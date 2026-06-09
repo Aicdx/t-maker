@@ -41,6 +41,31 @@ OPENAI_REASONING_EFFORT=
 OPENAI_DISABLE_RESPONSE_STORAGE=true
 ```
 
+## 自动盯盘与飞书通知
+
+后端支持自动盯盘。启用后，交易时间内会按 `MONITOR_INTERVAL_SECONDS` 轮询实时行情，复用现有规则与 AI 复核逻辑，并在 AI 确认低吸/高抛信号时发送飞书通知。通知包含工程 AI 结构化复核和 Codex 风格二次分析。
+
+默认不会自动启动，避免开发环境误发通知。配置 `.env`：
+
+```env
+MONITOR_AUTO_START=true
+FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/...
+```
+
+测试飞书：
+
+```powershell
+Invoke-RestMethod -Method Post http://127.0.0.1:8000/api/monitor/test-feishu
+```
+
+查看状态：
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/api/monitor/status
+```
+
+提醒内容仅供盘中辅助判断，不自动下单。
+
 ## 验证
 
 ```powershell
