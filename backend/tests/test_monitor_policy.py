@@ -1,5 +1,9 @@
 from datetime import datetime
 
+import pytest
+from pydantic import ValidationError
+
+from tmaker.config import Settings
 from tmaker.domain.models import LlmReview, Signal, SignalAction, SignalKind
 from tmaker.monitor.policy import MonitorPolicy, signal_notification_key
 
@@ -88,3 +92,20 @@ def test_signal_notification_key_changes_when_ai_result_changes() -> None:
 
     assert buy_key != sell_key
     assert buy_key == rounded_key
+
+
+@pytest.mark.parametrize(
+    ("field_name", "invalid_value"),
+    [
+        ("monitor_interval_seconds", 0),
+        ("monitor_min_ai_confidence", -0.01),
+        ("monitor_min_ai_confidence", 1.01),
+        ("monitor_dedup_window_minutes", 0),
+        ("feishu_timeout_seconds", 0),
+    ],
+)
+def test_monitor_settings_reject_invalid_numeric_values(
+    field_name: str, invalid_value: float
+) -> None:
+    with pytest.raises(ValidationError):
+        Settings(**{field_name: invalid_value})
