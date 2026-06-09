@@ -94,7 +94,6 @@ class FakeReviewClient:
             "wait_for": ["下一根 1 分钟 K 线不破新低"],
         }
 
-
 class BlockingReviewClient(FakeReviewClient):
     def __init__(self) -> None:
         super().__init__()
