@@ -33,7 +33,6 @@ class FeishuNotifier:
 
 
 def format_feishu_message(
-    *,
     signal: Signal,
     quote: MarketQuote | None,
     codex_analysis: dict[str, Any] | None,
@@ -62,8 +61,11 @@ def format_feishu_message(
         risk_items.extend(review.risks)
     risk_items.extend(_analysis_list(codex_analysis, "risk_notes"))
     lines.extend(_section("风险", risk_items))
-    if review and review.execution_blockers:
-        lines.extend(_section("执行阻断", review.execution_blockers))
+    execution_blockers = []
+    if review:
+        execution_blockers.extend(review.execution_blockers)
+    execution_blockers.extend(_analysis_list(codex_analysis, "execution_blockers"))
+    lines.extend(_section("执行阻断", execution_blockers))
     lines.extend(["", "提醒：仅供盘中辅助判断，不自动下单。"])
     return "\n".join(lines)
 

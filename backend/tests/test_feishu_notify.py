@@ -69,6 +69,31 @@ def test_format_feishu_message_includes_engineering_and_codex_analysis() -> None
     assert "提醒：仅供盘中辅助判断，不自动下单。" in message
 
 
+def test_format_feishu_message_accepts_positional_arguments() -> None:
+    message = format_feishu_message(
+        _signal(),
+        _quote(),
+        {"summary": "等待回踩确认。"},
+    )
+
+    assert "【T Maker 盯盘复核】中际旭创 300308" in message
+    assert "等待回踩确认。" in message
+
+
+def test_format_feishu_message_includes_codex_execution_blockers() -> None:
+    message = format_feishu_message(
+        signal=_signal(),
+        quote=_quote(),
+        codex_analysis={
+            "summary": "走势仍需等待确认。",
+            "execution_blockers": ["Codex 建议等待成交量重新放大"],
+        },
+    )
+
+    assert "执行阻断：" in message
+    assert "- Codex 建议等待成交量重新放大" in message
+
+
 @pytest.mark.asyncio
 async def test_feishu_notifier_posts_text_message() -> None:
     seen: dict[str, object] = {}
