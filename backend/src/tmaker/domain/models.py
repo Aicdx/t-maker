@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from datetime import date
 from datetime import datetime
 from enum import StrEnum
+from itertools import groupby
 
 from pydantic import BaseModel, Field, computed_field
 
@@ -17,6 +19,11 @@ class SignalAction(StrEnum):
     BUY = "buy"
     SELL = "sell"
     HOLD = "hold"
+
+
+class TradeConfirmationAction(StrEnum):
+    BUY = "buy"
+    SELL = "sell"
 
 
 class Candle(BaseModel):
@@ -99,3 +106,116 @@ class Signal(BaseModel):
             SignalKind.CANDIDATE_SELL,
             SignalKind.SUSPECTED,
         }
+
+
+class TradeConfirmationCreate(BaseModel):
+    symbol: str
+    signal_timestamp: datetime
+    signal_action: SignalAction
+    confirm_action: TradeConfirmationAction
+    price: float = Field(ge=0)
+    quantity: int = Field(default=100, gt=0)
+    source: str
+    reason: str
+    llm_confidence: float | None = Field(default=None, ge=0, le=1)
+
+
+class TradeConfirmation(TradeConfirmationCreate):
+    id: str
+    trade_date: date
+    created_at: datetime
+
+
+class TradeConfirmationPair(BaseModel):
+    symbol: str
+    buy_id: str
+    sell_id: str
+    buy_price: float
+    sell_price: float
+    quantity: int
+    spread: float
+    pnl: float
+    opened_at: datetime
+    closed_at: datetime
+
+
+class TradeConfirmationSummary(BaseModel):
+    record_count: int
+    paired_count: int
+    unpaired_count: int
+    total_pnl: float
+
+
+class TradeConfirmationStats(BaseModel):
+    date: date
+    quantity_per_trade: int = 100
+    summary: TradeConfirmationSummary
+    pairs: list[TradeConfirmationPair]
+    unpaired: list[TradeConfirmation]
+
+
+def build_trade_confirmation_stats(
+    confirmations: list[TradeConfirmation],
+    trade_date: date,
+) -> TradeConfirmationStats:
+    scoped = [item for item in confirmations if item.trade_date == trade_date]
+    sorted_items = sorted(scoped, key=lambda item: (item.symbol, item.signal_timestamp, item.created_at))
+    pairs: list[TradeConfirmationPair] = []
+    unpaired: list[TradeConfirmation] = []
+
+    for symbol, symbol_items_iter in groupby(sorted_items, key=lambda item: item.symbol):
+        pending_buys: list[TradeConfirmation] = []
+        pending_sells: list[TradeConfirmation] = []
+        for item in symbol_items_iter:
+            if item.confirm_action == TradeConfirmationAction.BUY:
+                if pending_sells:
+                    sell = pending_sells.pop(0)
+                    pairs.append(_confirmation_pair(symbol, buy=item, sell=sell))
+                else:
+                    pending_buys.append(item)
+            else:
+                if pending_buys:
+                    buy = pending_buys.pop(0)
+                    pairs.append(_confirmation_pair(symbol, buy=buy, sell=item))
+                else:
+                    pending_sells.append(item)
+        unpaired.extend(pending_buys)
+        unpaired.extend(pending_sells)
+
+    total_pnl = round(sum(pair.pnl for pair in pairs), 2)
+    return TradeConfirmationStats(
+        date=trade_date,
+        summary=TradeConfirmationSummary(
+            record_count=len(scoped),
+            paired_count=len(pairs),
+            unpaired_count=len(unpaired),
+            total_pnl=total_pnl,
+        ),
+        pairs=pairs,
+        unpaired=sorted(unpaired, key=lambda item: (item.signal_timestamp, item.created_at)),
+    )
+
+
+def _confirmation_pair(
+    symbol: str,
+    *,
+    buy: TradeConfirmation,
+    sell: TradeConfirmation,
+) -> TradeConfirmationPair:
+    quantity = min(buy.quantity, sell.quantity)
+    spread = round(sell.price - buy.price, 4)
+    pnl = round(spread * quantity, 2)
+    opened_at = min(buy.signal_timestamp, sell.signal_timestamp)
+    closed_at = max(buy.signal_timestamp, sell.signal_timestamp)
+    return TradeConfirmationPair(
+        symbol=symbol,
+        buy_id=buy.id,
+        sell_id=sell.id,
+        buy_price=buy.price,
+        sell_price=sell.price,
+        quantity=quantity,
+        spread=spread,
+        pnl=pnl,
+        opened_at=opened_at,
+        closed_at=closed_at,
+    )
