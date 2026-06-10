@@ -16,13 +16,18 @@ export function quoteForVisibleContext<TQuote extends MarketQuoteLike>({
   hasSelectedDay,
   hasRecentReplay,
   hasPlayback,
+  monitoring = false,
+  usesLiveSnapshot = false,
 }: {
   selectedDayQuote?: TQuote | null
   snapshotQuote?: TQuote
   hasSelectedDay: boolean
   hasRecentReplay: boolean
   hasPlayback: boolean
+  monitoring?: boolean
+  usesLiveSnapshot?: boolean
 }) {
+  if (monitoring || usesLiveSnapshot) return snapshotQuote
   if (hasSelectedDay) return selectedDayQuote ?? undefined
   if (hasRecentReplay || hasPlayback) return undefined
   return snapshotQuote

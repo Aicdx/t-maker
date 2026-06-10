@@ -476,6 +476,18 @@ function App() {
       summary: replaySummaryFromPoints(monitorPoints),
     }
   }, [monitorEnabled, monitorPoints])
+  const latestRealtimeTimestamp = last(
+    (snapshot?.chart_series.realtime ?? snapshot?.candles ?? []).filter(
+      (candle) => candle.symbol === selectedSymbol,
+    ),
+  )?.timestamp
+  const liveTradeDate = latestRealtimeTimestamp?.slice(0, 10) ?? null
+  const selectedDayUsesLiveQuote =
+    Boolean(selectedDayReplay) && selectedDayReplay?.date === liveTradeDate && !selectedDayPayload?.quote
+  const usesLiveSnapshot =
+    !playbackSeries &&
+    !selectedRecentReplayDay &&
+    (monitorEnabled || !selectedDayReplay || selectedDayUsesLiveQuote)
   const visibleChartSeries =
     playbackSeries ??
     (monitorEnabled
@@ -508,6 +520,8 @@ function App() {
           hasSelectedDay: Boolean(selectedDayReplay),
           hasRecentReplay: Boolean(selectedRecentReplayDay),
           hasPlayback: Boolean(playbackSeries),
+          monitoring: monitorEnabled,
+          usesLiveSnapshot,
         }),
         realtimeChartData,
       ),
@@ -518,6 +532,8 @@ function App() {
       selectedDayReplay,
       selectedRecentReplayDay,
       selectedSymbol,
+      monitorEnabled,
+      usesLiveSnapshot,
       snapshot?.quotes,
     ],
   )
@@ -525,11 +541,6 @@ function App() {
     () => quoteSummary?.reference ?? buildQuoteSummary(chartData)?.reference ?? null,
     [chartData, quoteSummary?.reference],
   )
-  const latestRealtimeTimestamp = last(
-    (snapshot?.chart_series.realtime ?? snapshot?.candles ?? []).filter(
-      (candle) => candle.symbol === selectedSymbol,
-    ),
-  )?.timestamp
   const visibleTradeDate = chartTradeDateLabel({
     monitorEnabled,
     selectedTradeDate,
@@ -1453,7 +1464,7 @@ function trendClassFor(value: number) {
 
 function modelStatusLabel(status: string) {
   if (status === 'ok') return '已复核'
-  if (status === 'pending') return '待复核'
+  if (status === 'pending') return 'AI复核中'
   if (status === 'failed') return '复核失败'
   if (status === 'not_requested') return '未触发'
   return status || '--'

@@ -115,7 +115,7 @@ test('chartTradeDateLabel shows realtime snapshot date while monitoring', () => 
 })
 
 test('replayPointReviewLabel does not display pending points as AI hold', () => {
-  assert.equal(replayPointReviewLabel({ llm_status: 'pending', llm_action: null }), 'AI待复核')
+  assert.equal(replayPointReviewLabel({ llm_status: 'pending', llm_action: null }), 'AI复核中')
   assert.equal(replayPointReviewLabel({ llm_status: 'ok', llm_action: 'hold' }), 'AI观望')
   assert.equal(replayPointReviewLabel({ llm_status: 'ok', llm_action: 'sell' }), 'AI高抛')
 })

@@ -41,6 +41,22 @@ test('quoteForVisibleContext uses live snapshot quote only for live snapshot vie
     hasSelectedDay: false,
     hasRecentReplay: false,
     hasPlayback: false,
+    monitoring: false,
+  })
+
+  assert.equal(selected, liveQuote)
+})
+
+test('quoteForVisibleContext uses live snapshot quote while viewing realtime data with selected today', () => {
+  const liveQuote = quote(1184.99, 1154.99)
+
+  const selected = quoteForVisibleContext({
+    selectedDayQuote: null,
+    snapshotQuote: liveQuote,
+    hasSelectedDay: true,
+    hasRecentReplay: false,
+    hasPlayback: false,
+    usesLiveSnapshot: true,
   })
 
   assert.equal(selected, liveQuote)

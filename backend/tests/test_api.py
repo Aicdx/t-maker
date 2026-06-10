@@ -1,5 +1,8 @@
+import asyncio
 from datetime import date, datetime
 from pathlib import Path
+import threading
+import time
 
 from fastapi.testclient import TestClient
 
@@ -27,7 +30,7 @@ class FakeProvider:
         if isinstance(self.candles, Exception):
             raise self.candles
         if isinstance(self.candles, dict):
-            return self.candles[symbol]
+            return self.candles.get(symbol, _provider_candles(symbol))
         return self.candles
 
     def fetch_minutes_for_date(self, symbol: str, trade_date: date) -> list[Candle]:
@@ -42,6 +45,22 @@ class FakeProvider:
         if isinstance(self.quotes, dict):
             return self.quotes[symbol]
         raise RuntimeError("quote unavailable")
+
+
+class RepairingProvider(FakeProvider):
+    def __init__(self, repair_candles: list[Candle]) -> None:
+        super().__init__(repair_candles)
+        self.fetch_for_date_calls: list[tuple[str, date]] = []
+
+    def fetch_minutes_for_date(self, symbol: str, trade_date: date) -> list[Candle]:
+        self.fetch_for_date_calls.append((symbol, trade_date))
+        return [
+            candle
+            for candle in self.candles
+            if isinstance(self.candles, list)
+            and candle.symbol == symbol
+            and candle.timestamp.date() == trade_date
+        ]
 
 
 class ProgressiveProvider(FakeProvider):
@@ -64,6 +83,26 @@ class FakeReviewClient:
 
     async def create_review(self, context: dict) -> dict:
         self.calls.append(context)
+        return {
+            "action": "buy",
+            "confidence": 0.64,
+            "summary": "模型确认可作为低吸观察点",
+            "reasons": ["价格低于 VWAP", "短线量能收缩"],
+            "risks": ["趋势仍弱"],
+            "wait_for": ["下一根 1 分钟 K 线不破新低"],
+        }
+
+
+class BlockingReviewClient(FakeReviewClient):
+    def __init__(self) -> None:
+        super().__init__()
+        self.started = threading.Event()
+        self.release = threading.Event()
+
+    async def create_review(self, context: dict) -> dict:
+        self.calls.append(context)
+        self.started.set()
+        await asyncio.to_thread(self.release.wait)
         return {
             "action": "buy",
             "confidence": 0.64,
@@ -146,8 +185,22 @@ def test_health_endpoint_reports_ok() -> None:
     assert response.json()["status"] == "ok"
 
 
+def _test_app(**kwargs):
+    kwargs.setdefault("repository", FakeRepository())
+    return create_app(**kwargs)
+
+
+def _eventually(predicate, timeout: float = 2, interval: float = 0.02) -> bool:
+    deadline = time.perf_counter() + timeout
+    while time.perf_counter() < deadline:
+        if predicate():
+            return True
+        time.sleep(interval)
+    return predicate()
+
+
 def test_snapshot_endpoint_returns_watchlist_positions_and_signals() -> None:
-    client = TestClient(create_app(minute_provider=FakeProvider(_provider_candles())))
+    client = TestClient(_test_app(minute_provider=FakeProvider(_provider_candles())))
 
     response = client.get("/api/snapshot")
 
@@ -157,11 +210,19 @@ def test_snapshot_endpoint_returns_watchlist_positions_and_signals() -> None:
         ("300308", "中际旭创"),
         ("300502", "新易盛"),
         ("600487", "亨通光电"),
+        ("000636", "风华高科"),
     ]
-    assert {position["symbol"] for position in payload["positions"]} == {"300308", "300502", "600487"}
+    assert {position["symbol"] for position in payload["positions"]} == {
+        "000636",
+        "300308",
+        "300502",
+        "600487",
+    }
     positions_by_symbol = {position["symbol"]: position for position in payload["positions"]}
+    assert positions_by_symbol["000636"]["base_quantity"] == 500
     assert positions_by_symbol["300308"]["base_quantity"] == 200
     assert positions_by_symbol["300502"]["base_quantity"] == 200
+    assert positions_by_symbol["000636"]["available_cash"] == 200000
     assert positions_by_symbol["300308"]["available_cash"] == 200000
     assert positions_by_symbol["300502"]["available_cash"] == 200000
     assert positions_by_symbol["600487"]["available_cash"] == 200000
@@ -181,41 +242,51 @@ def test_simulate_tick_adds_a_signal() -> None:
 
 def test_snapshot_uses_injected_real_provider_when_available() -> None:
     candles = {
+        "000636": _provider_candles("000636", close=14.2),
         "600487": _provider_candles("600487", close=23.4),
         "300308": _provider_candles("300308", close=151.6),
         "300502": _provider_candles("300502", close=126.8),
     }
     provider = FakeProvider(candles)
-    client = TestClient(create_app(minute_provider=provider))
+    client = TestClient(_test_app(minute_provider=provider))
 
     response = client.get("/api/snapshot")
 
     payload = response.json()
-    assert provider.calls == ["300308", "300502", "600487"]
+    assert provider.calls == ["300308", "300502", "600487", "000636"]
     assert payload["provider_health"]["provider"] == "tencent_ifzq"
     assert payload["provider_health"]["last_success_at"] == "2026-06-05T09:32:00"
-    assert {candle["symbol"] for candle in payload["candles"]} == {"300308", "300502", "600487"}
-    assert payload["candles"][-1]["close"] == 23.4
+    assert {candle["symbol"] for candle in payload["candles"]} == {
+        "000636",
+        "300308",
+        "300502",
+        "600487",
+    }
+    closes = {candle["symbol"]: candle["close"] for candle in payload["candles"]}
+    assert closes["000636"] == 14.2
+    assert closes["600487"] == 23.4
 
 
 def test_snapshot_returns_realtime_quotes_when_available() -> None:
     candles = {
+        "000636": _provider_candles("000636", close=14.2),
         "600487": _provider_candles("600487", close=23.4),
         "300308": _provider_candles("300308", close=151.6),
         "300502": _provider_candles("300502", close=126.8),
     }
     quotes = {
+        "000636": _quote("000636", "风华高科", latest=14.3, previous_close=14.1, open_price=14.12),
         "600487": _quote("600487", "亨通光电", latest=23.8, previous_close=23.2, open_price=23.3),
         "300308": _quote("300308", "中际旭创", latest=1179.99, previous_close=1280, open_price=1273.2),
         "300502": _quote("300502", "新易盛", latest=748, previous_close=775.94, open_price=790),
     }
     provider = FakeProvider(candles, quotes=quotes)
-    client = TestClient(create_app(minute_provider=provider))
+    client = TestClient(_test_app(minute_provider=provider))
 
     response = client.get("/api/snapshot")
 
     payload = response.json()
-    assert provider.quote_calls == ["300308", "300502", "600487"]
+    assert provider.quote_calls == ["300308", "300502", "600487", "000636"]
     assert payload["quotes"]["300308"] == {
         "symbol": "300308",
         "name": "中际旭创",
@@ -231,24 +302,27 @@ def test_snapshot_returns_realtime_quotes_when_available() -> None:
 
 def test_snapshot_keeps_intraday_candles_for_each_watch_symbol() -> None:
     candles = {
+        "000636": _many_provider_candles("000636", close=14.2),
         "600487": _many_provider_candles("600487", close=23.4),
         "300308": _many_provider_candles("300308", close=151.6),
         "300502": _many_provider_candles("300502", close=126.8),
     }
-    client = TestClient(create_app(minute_provider=FakeProvider(candles)))
+    client = TestClient(_test_app(minute_provider=FakeProvider(candles)))
 
     response = client.get("/api/snapshot")
 
     payload = response.json()
     candles_by_symbol = {
         symbol: [candle for candle in payload["candles"] if candle["symbol"] == symbol]
-        for symbol in ["300308", "300502", "600487"]
+        for symbol in ["000636", "300308", "300502", "600487"]
     }
     assert {symbol: len(candles) for symbol, candles in candles_by_symbol.items()} == {
+        "000636": 100,
         "300308": 100,
         "300502": 100,
         "600487": 100,
     }
+    assert candles_by_symbol["000636"][-1]["close"] == 14.2
     assert candles_by_symbol["600487"][-1]["close"] == 23.4
     assert candles_by_symbol["300308"][-1]["close"] == 151.6
     assert candles_by_symbol["300502"][-1]["close"] == 126.8
@@ -256,31 +330,35 @@ def test_snapshot_keeps_intraday_candles_for_each_watch_symbol() -> None:
 
 def test_snapshot_returns_realtime_one_minute_and_five_minute_series() -> None:
     candles = {
+        "000636": _session_provider_candles("000636", close=14.2),
         "600487": _session_provider_candles("600487", close=23.4),
         "300308": _session_provider_candles("300308", close=151.6),
         "300502": _session_provider_candles("300502", close=126.8),
     }
-    client = TestClient(create_app(minute_provider=FakeProvider(candles)))
+    client = TestClient(_test_app(minute_provider=FakeProvider(candles)))
 
     response = client.get("/api/snapshot")
 
     payload = response.json()
     assert set(payload["chart_series"]) == {"realtime", "one_minute", "five_minute"}
     assert {candle["symbol"] for candle in payload["chart_series"]["realtime"]} == {
+        "000636",
         "300308",
         "300502",
         "600487",
     }
     assert {candle["symbol"] for candle in payload["chart_series"]["one_minute"]} == {
+        "000636",
         "300308",
         "300502",
         "600487",
     }
     five_minute_by_symbol = {
         symbol: [candle for candle in payload["chart_series"]["five_minute"] if candle["symbol"] == symbol]
-        for symbol in ["300308", "300502", "600487"]
+        for symbol in ["000636", "300308", "300502", "600487"]
     }
     assert {symbol: len(candles) for symbol, candles in five_minute_by_symbol.items()} == {
+        "000636": 2,
         "300308": 2,
         "300502": 2,
         "600487": 2,
@@ -290,11 +368,12 @@ def test_snapshot_returns_realtime_one_minute_and_five_minute_series() -> None:
 
 def test_snapshot_realtime_series_keeps_full_trading_day() -> None:
     candles = {
+        "000636": _full_trading_day_provider_candles("000636", close=14.2),
         "600487": _full_trading_day_provider_candles("600487", close=23.4),
         "300308": _full_trading_day_provider_candles("300308", close=151.6),
         "300502": _full_trading_day_provider_candles("300502", close=126.8),
     }
-    client = TestClient(create_app(minute_provider=FakeProvider(candles)))
+    client = TestClient(_test_app(minute_provider=FakeProvider(candles)))
 
     response = client.get("/api/snapshot")
 
@@ -311,7 +390,7 @@ def test_snapshot_realtime_series_keeps_full_trading_day() -> None:
 
 def test_snapshot_falls_back_to_demo_data_when_provider_fails() -> None:
     provider = FakeProvider(MarketDataUnavailable("empty"))
-    client = TestClient(create_app(minute_provider=provider))
+    client = TestClient(_test_app(minute_provider=provider))
 
     response = client.get("/api/snapshot")
 
@@ -320,7 +399,7 @@ def test_snapshot_falls_back_to_demo_data_when_provider_fails() -> None:
     assert payload["provider_health"]["provider"] == "tencent_ifzq_fallback"
     assert payload["provider_health"]["missing_candle_count"] >= 1
     assert payload["provider_health"]["last_error"] == (
-        "300308: empty；300502: empty；600487: empty"
+        "300308: empty；300502: empty；600487: empty；000636: empty"
     )
     assert payload["candles"]
 
@@ -393,6 +472,21 @@ def _session_provider_candles(symbol: str, close: float) -> list[Candle]:
     ]
 
 
+def _session_provider_candles_on(symbol: str, trade_date: date, close: float) -> list[Candle]:
+    return [
+        Candle(
+            symbol=symbol,
+            timestamp=f"{trade_date.isoformat()}T09:{30 + index:02d}:00",
+            open=close + index * 0.01,
+            high=close + index * 0.01 + 0.1,
+            low=close + index * 0.01 - 0.1,
+            close=close + index * 0.01,
+            volume=1000 + index,
+        )
+        for index in range(11)
+    ]
+
+
 def _full_trading_day_provider_candles(symbol: str, close: float) -> list[Candle]:
     minutes = [
         *(f"{hour:02d}:{minute:02d}" for hour in range(9, 12) for minute in range(60)),
@@ -419,7 +513,7 @@ def _full_trading_day_provider_candles(symbol: str, close: float) -> list[Candle
 
 def test_snapshot_falls_back_when_provider_raises_external_exception() -> None:
     provider = FakeProvider(ConnectionError("proxy unavailable"))
-    client = TestClient(create_app(minute_provider=provider))
+    client = TestClient(_test_app(minute_provider=provider))
 
     response = client.get("/api/snapshot")
 
@@ -427,7 +521,7 @@ def test_snapshot_falls_back_when_provider_raises_external_exception() -> None:
     assert response.status_code == 200
     assert payload["provider_health"]["provider"] == "tencent_ifzq_fallback"
     assert payload["provider_health"]["last_error"] == (
-        "300308: proxy unavailable；300502: proxy unavailable；600487: proxy unavailable"
+        "300308: proxy unavailable；300502: proxy unavailable；600487: proxy unavailable；000636: proxy unavailable"
     )
 
 
@@ -439,21 +533,209 @@ def test_snapshot_reviews_candidate_signals_with_llm_client() -> None:
     }
     review_client = FakeReviewClient()
     client = TestClient(
-        create_app(minute_provider=FakeProvider(candles), review_client=review_client)
+        _test_app(minute_provider=FakeProvider(candles), review_client=review_client)
     )
 
-    response = client.get("/api/snapshot")
+    first = client.get("/api/snapshot")
 
+    payload = first.json()
+    buy_signal = [
+        signal
+        for signal in payload["signals"]
+        if signal["symbol"] == "600487" and signal["kind"] == "candidate_buy"
+    ][-1]
+    assert buy_signal["llm_status"] == "pending"
+    assert _eventually(lambda: bool(review_client.calls))
+    assert review_client.calls
+    assert review_client.calls[0]["symbol"] == "600487"
+    response = client.get("/api/snapshot")
     payload = response.json()
     buy_signal = [
         signal
         for signal in payload["signals"]
         if signal["symbol"] == "600487" and signal["kind"] == "candidate_buy"
     ][-1]
-    assert review_client.calls
-    assert review_client.calls[0]["symbol"] == "600487"
     assert buy_signal["llm_status"] == "ok"
     assert buy_signal["llm_review"]["summary"] == "模型确认可作为低吸观察点"
+
+
+def test_snapshot_persists_reviewed_realtime_candidate_points() -> None:
+    repository = FakeRepository()
+    candles = {
+        "600487": _buy_candidate_candles("600487"),
+        "300308": _provider_candles("300308", close=151.6),
+        "300502": _provider_candles("300502", close=126.8),
+    }
+    review_client = FakeReviewClient()
+    client = TestClient(
+        create_app(
+            minute_provider=FakeProvider(candles),
+            review_client=review_client,
+            repository=repository,
+        )
+    )
+
+    response = client.get("/api/snapshot")
+
+    assert response.status_code == 200
+    assert _eventually(
+        lambda: any(
+            point.symbol == "600487" and point.kind == "candidate_buy" for point in repository.saved_points
+        )
+    )
+    saved = [
+        point
+        for point in repository.saved_points
+        if point.symbol == "600487" and point.kind == "candidate_buy"
+    ]
+    assert saved
+    assert saved[-1].timestamp == "2026-06-05T10:05:00"
+    assert saved[-1].price == 9.55
+    assert saved[-1].llm_status == "ok"
+    assert saved[-1].llm_action == "buy"
+    assert saved[-1].llm_confidence == 0.64
+
+
+def test_snapshot_returns_pending_candidate_without_waiting_for_ai_review() -> None:
+    repository = FakeRepository()
+    candles = {
+        "600487": _buy_candidate_candles("600487"),
+        "300308": _provider_candles("300308", close=151.6),
+        "300502": _provider_candles("300502", close=126.8),
+    }
+    review_client = BlockingReviewClient()
+    client = TestClient(
+        create_app(
+            minute_provider=FakeProvider(candles),
+            review_client=review_client,
+            repository=repository,
+        )
+    )
+    result: dict[str, object] = {}
+
+    def request_snapshot() -> None:
+        result["response"] = client.get("/api/snapshot")
+
+    thread = threading.Thread(target=request_snapshot)
+    thread.start()
+    time.sleep(0.2)
+
+    try:
+        assert not thread.is_alive()
+        assert review_client.started.is_set()
+        response = result["response"]
+        assert response.status_code == 200
+        pending_signal = [
+            signal
+            for signal in response.json()["signals"]
+            if signal["symbol"] == "600487" and signal["kind"] == "candidate_buy"
+        ][-1]
+        assert pending_signal["llm_status"] == "pending"
+        assert repository.saved_points == []
+    finally:
+        review_client.release.set()
+        thread.join(timeout=2)
+
+
+def test_snapshot_hydrates_saved_realtime_points_after_backend_restart() -> None:
+    repository = FakeRepository()
+    trade_date = date(2026, 6, 5)
+    repository.save_replay_points(
+        [
+            ReplayPoint(
+                symbol="600487",
+                timestamp="2026-06-05T10:05:00",
+                action="buy",
+                kind="candidate_buy",
+                price=9.55,
+                confidence=0.64,
+                rule_ids=["vwap_deviation"],
+                reason="早盘实时盯盘低吸候选",
+                risks=["趋势仍弱"],
+                llm_status="ok",
+                llm_action="buy",
+                llm_confidence=0.64,
+                llm_summary="模型确认可作为低吸观察点",
+                llm_reasons=["价格低于 VWAP"],
+                wait_for=["下一根 1 分钟 K 线不破新低"],
+                execution_allowed=True,
+            )
+        ],
+        strict=True,
+    )
+    repository.saved_points.clear()
+    candles = {
+        "600487": _flat_hold_candles_after_candidate_time("600487"),
+        "300308": _provider_candles("300308", close=151.6),
+        "300502": _provider_candles("300502", close=126.8),
+    }
+    client = TestClient(create_app(minute_provider=FakeProvider(candles), repository=repository))
+
+    response = client.get("/api/snapshot")
+
+    assert response.status_code == 200
+    saved_signal = [
+        signal
+        for signal in response.json()["signals"]
+        if signal["symbol"] == "600487" and signal["timestamp"] == "2026-06-05T10:05:00"
+    ][-1]
+    assert saved_signal["kind"] == "candidate_buy"
+    assert saved_signal["llm_status"] == "ok"
+    assert saved_signal["llm_review"]["summary"] == "模型确认可作为低吸观察点"
+    assert repository.saved_points == []
+
+
+def test_snapshot_uses_saved_realtime_points_to_merge_clusters_after_backend_restart() -> None:
+    repository = FakeRepository()
+    repository.save_replay_points(
+        [
+            ReplayPoint(
+                symbol="600487",
+                timestamp="2026-06-05T10:10:00",
+                action="buy",
+                kind="suspected",
+                price=102.25,
+                confidence=0.64,
+                rule_ids=["pullback_low_rebound"],
+                reason="早盘实时盯盘低吸候选",
+                risks=["仍处于 VWAP 下方"],
+                llm_status="ok",
+                llm_action="buy",
+                llm_confidence=0.64,
+                llm_summary="模型确认可作为低吸观察点",
+                llm_reasons=["价格低于 VWAP"],
+                wait_for=[],
+                execution_allowed=True,
+            )
+        ],
+        strict=True,
+    )
+    repository.saved_points.clear()
+    candles = {
+        "600487": _pullback_low_rebound_same_cluster_candles("600487"),
+        "300308": _provider_candles("300308", close=151.6),
+        "300502": _provider_candles("300502", close=126.8),
+    }
+    review_client = FakeReviewClient()
+    client = TestClient(
+        create_app(
+            minute_provider=FakeProvider(candles),
+            review_client=review_client,
+            repository=repository,
+        )
+    )
+
+    response = client.get("/api/snapshot")
+
+    assert response.status_code == 200
+    assert review_client.calls == []
+    buy_signals = [
+        signal
+        for signal in response.json()["signals"]
+        if signal["symbol"] == "600487" and signal["action"] == "buy"
+    ]
+    assert [signal["timestamp"] for signal in buy_signals] == ["2026-06-05T10:10:00"]
+    assert repository.saved_points == []
 
 
 def test_snapshot_uses_replay_style_context_for_pullback_low_rebound() -> None:
@@ -463,7 +745,7 @@ def test_snapshot_uses_replay_style_context_for_pullback_low_rebound() -> None:
         "300502": _provider_candles("300502", close=126.8),
     }
     review_client = FakeReviewClient()
-    client = TestClient(create_app(minute_provider=FakeProvider(candles), review_client=review_client))
+    client = TestClient(_test_app(minute_provider=FakeProvider(candles), review_client=review_client))
 
     response = client.get("/api/snapshot")
 
@@ -485,7 +767,7 @@ def test_snapshot_uses_thirty_minute_replay_context_for_realtime_candidates() ->
         "300502": _provider_candles("300502", close=126.8),
     }
     review_client = FakeReviewClient()
-    client = TestClient(create_app(minute_provider=FakeProvider(candles), review_client=review_client))
+    client = TestClient(_test_app(minute_provider=FakeProvider(candles), review_client=review_client))
 
     response = client.get("/api/snapshot")
 
@@ -503,7 +785,7 @@ def test_snapshot_does_not_review_same_realtime_candidate_twice() -> None:
         "300502": _provider_candles("300502", close=126.8),
     }
     review_client = FakeReviewClient()
-    client = TestClient(create_app(minute_provider=FakeProvider(candles), review_client=review_client))
+    client = TestClient(_test_app(minute_provider=FakeProvider(candles), review_client=review_client))
 
     first = client.get("/api/snapshot")
     second = client.get("/api/snapshot")
@@ -567,6 +849,54 @@ def test_realtime_hold_does_not_replace_existing_reviewed_candidate() -> None:
     assert len(state.signals) == 1
     assert state.signals[0].kind == "candidate_buy"
     assert state.signals[0].llm_status == "ok"
+
+
+def test_realtime_pending_does_not_replace_existing_reviewed_candidate() -> None:
+    reviewed_candidate = app_module.Signal(
+        symbol="600487",
+        timestamp=datetime(2026, 6, 5, 10, 10),
+        kind="candidate_buy",
+        action="buy",
+        confidence=0.64,
+        rule_ids=["pullback_low_rebound"],
+        reason="低位回抽",
+        risks=[],
+        source_fresh=True,
+        llm_status="ok",
+        llm_review={
+            "action": "buy",
+            "confidence": 0.64,
+            "summary": "模型确认可作为低吸观察点",
+            "reasons": ["价格低于 VWAP"],
+            "risks": [],
+            "wait_for": [],
+        },
+    )
+    pending = app_module.Signal(
+        symbol="600487",
+        timestamp=datetime(2026, 6, 5, 10, 10),
+        kind="candidate_buy",
+        action="buy",
+        confidence=0.5,
+        rule_ids=["pullback_low_rebound"],
+        reason="低位回抽",
+        risks=[],
+        source_fresh=True,
+        llm_status="pending",
+    )
+    state = app_module.AppState(
+        watchlist=[],
+        positions=[],
+        candles=[],
+        signals=[reviewed_candidate],
+        provider_health=app_module.ProviderHealth(provider="test", symbol="600487"),
+    )
+
+    app_module._upsert_signal(state, pending)
+
+    assert len(state.signals) == 1
+    assert state.signals[0].llm_status == "ok"
+    assert state.signals[0].llm_review is not None
 
 
 def test_snapshot_keeps_reviewed_candidates_beyond_recent_hold_window() -> None:
@@ -643,7 +973,7 @@ def test_snapshot_merges_realtime_pullback_buy_cluster_like_replay() -> None:
         "300502": [_provider_candles("300502", close=126.8)],
     }
     review_client = FakeReviewClient()
-    client = TestClient(create_app(minute_provider=ProgressiveProvider(candles), review_client=review_client))
+    client = TestClient(_test_app(minute_provider=ProgressiveProvider(candles), review_client=review_client))
 
     first = client.get("/api/snapshot")
     second = client.get("/api/snapshot")
@@ -669,7 +999,7 @@ def test_snapshot_reviews_new_lower_realtime_pullback_buy_leg() -> None:
         "300502": [_provider_candles("300502", close=126.8)],
     }
     review_client = FakeReviewClient()
-    client = TestClient(create_app(minute_provider=ProgressiveProvider(candles), review_client=review_client))
+    client = TestClient(_test_app(minute_provider=ProgressiveProvider(candles), review_client=review_client))
 
     first = client.get("/api/snapshot")
     second = client.get("/api/snapshot")
@@ -698,7 +1028,7 @@ def test_snapshot_review_context_uses_realtime_candidate_history_without_hold_si
         "300502": [_provider_candles("300502", close=126.8)],
     }
     review_client = FakeReviewClient()
-    client = TestClient(create_app(minute_provider=ProgressiveProvider(candles), review_client=review_client))
+    client = TestClient(_test_app(minute_provider=ProgressiveProvider(candles), review_client=review_client))
 
     first = client.get("/api/snapshot")
     second = client.get("/api/snapshot")
@@ -958,6 +1288,35 @@ def test_day_endpoint_returns_database_bars_chart_series_and_stored_points_witho
     assert payload["quote"]["symbol"] == "300308"
 
 
+def test_day_endpoint_refetches_invalid_cached_zero_close_bars() -> None:
+    repository = FakeRepository()
+    trade_date = date(2026, 6, 9)
+    repository.save_minute_bars(
+        [
+            Candle(
+                symbol="300308",
+                timestamp=datetime(2026, 6, 9, 9, 31),
+                open=1140.97,
+                high=1140.97,
+                low=1140.97,
+                close=0,
+                volume=7940,
+            )
+        ],
+        source="bad-cache",
+    )
+    provider = RepairingProvider(_session_provider_candles_on("300308", trade_date, close=1184.99))
+    client = TestClient(create_app(minute_provider=provider, repository=repository))
+
+    response = client.get("/api/day?symbol=300308&date=2026-06-09")
+
+    payload = response.json()
+    assert response.status_code == 200
+    assert provider.fetch_for_date_calls == [("300308", trade_date)]
+    assert len(payload["chart_series"]["one_minute"]) == 11
+    assert payload["chart_series"]["one_minute"][0]["close"] > 0
+
+
 def test_day_endpoint_fetches_requested_uncached_date_and_persists_bars() -> None:
     repository = FakeRepository()
     provider = FakeProvider(
@@ -1096,7 +1455,7 @@ def test_recent_replay_endpoint_returns_grouped_days_and_accuracy_summary(monkey
     payload = response.json()
     assert response.status_code == 200
     assert payload["days_requested"] == 5
-    assert payload["symbols"] == ["300308", "300502", "600487"]
+    assert payload["symbols"] == ["300308", "300502", "600487", "000636"]
     assert [day["date"] for day in payload["days"]] == [
         "2026-06-01",
         "2026-06-02",
@@ -1199,6 +1558,21 @@ def _buy_candidate_candles_on(symbol: str, trade_date: date) -> list[Candle]:
             volume=volumes[index],
         )
         for index, close in enumerate(closes)
+    ]
+
+
+def _flat_hold_candles_after_candidate_time(symbol: str) -> list[Candle]:
+    return [
+        Candle(
+            symbol=symbol,
+            timestamp=f"2026-06-05T10:{index + 1:02d}:00",
+            open=10,
+            high=10.05,
+            low=9.95,
+            close=10,
+            volume=1000,
+        )
+        for index in range(6)
     ]
 
 

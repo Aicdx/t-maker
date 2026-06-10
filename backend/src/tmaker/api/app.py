@@ -4,14 +4,15 @@ from datetime import date as date_type
 from datetime import datetime, timedelta
 import json
 from pathlib import Path
+import threading
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 
 from tmaker.config import PROJECT_DIR, get_settings
-from tmaker.domain.models import Candle, MarketQuote, Position, ProviderHealth, Signal
+from tmaker.domain.models import Candle, LlmReview, MarketQuote, Position, ProviderHealth, Signal
 from tmaker.llm.context import build_review_context
 from tmaker.llm.openai_client import OpenAICompatibleClient
 from tmaker.llm.review import LlmReviewer, ReviewClient
@@ -22,6 +23,7 @@ from tmaker.market.tencent_provider import TencentHistoricalMinuteProvider, Tenc
 from tmaker.storage.postgres import PostgresRepository
 from tmaker.strategy.market_context import build_equal_weight_sector_candles, build_market_context
 from tmaker.strategy.replay import (
+    ReplayPoint,
     replay_recent_days,
     replay_symbol_today,
     replay_today,
@@ -44,6 +46,8 @@ class AppState(BaseModel):
     quotes: dict[str, MarketQuote] = Field(default_factory=dict)
     signals: list[Signal]
     provider_health: ProviderHealth
+    _reviewing_signal_keys: set[str] = PrivateAttr(default_factory=set)
+    _review_lock = PrivateAttr(default_factory=threading.Lock)
 
 
 def create_app(
@@ -74,7 +78,7 @@ def create_app(
 
     @app.get("/api/snapshot")
     def snapshot() -> dict:
-        _refresh_from_provider(state, provider, reviewer)
+        _refresh_from_provider(state, provider, reviewer, repo)
         return _snapshot(state)
 
     @app.get("/api/trading-days")
@@ -253,6 +257,7 @@ def _refresh_from_provider(
     state: AppState,
     provider: TencentMarketProvider,
     reviewer: LlmReviewer,
+    repo: PostgresRepository | None = None,
 ) -> None:
     all_candles: list[Candle] = []
     candles_by_symbol: dict[str, list[Candle]] = {}
@@ -291,11 +296,22 @@ def _refresh_from_provider(
         return
 
     state.candles = all_candles
+    persistence_errors: list[str] = []
     for item in state.watchlist:
         candles = candles_by_symbol.get(item.symbol, [])
         if not candles:
             continue
         current_latest = candles[-1]
+        if repo is not None:
+            error = _hydrate_realtime_signals_from_repo(
+                repo,
+                state,
+                item.symbol,
+                current_latest.timestamp.date(),
+                latest_timestamp=current_latest.timestamp,
+            )
+            if error is not None:
+                persistence_errors.append(f"{item.symbol} signal cache: {error}")
         position = _position_for_symbol(state.positions, item.symbol)
         health = ProviderHealth(
             provider="tencent_ifzq",
@@ -317,23 +333,28 @@ def _refresh_from_provider(
         )
         if signal.needs_llm_review and not _should_keep_realtime_signal(state, signal, current_latest.close, position):
             continue
-        signal = _review_candidate_signal(
+        signal = _queue_realtime_review(
             signal,
             candles[-30:],
             position,
             state,
             reviewer,
+            repo,
+            current_latest.close,
             market_context=market_context.model_dump(mode="json") if market_context else None,
         )
         _upsert_signal(state, signal)
+        error = _persist_realtime_signal(repo, signal, current_latest.close)
+        if error is not None:
+            persistence_errors.append(f"{item.symbol} signal: {error}")
 
     state.provider_health = ProviderHealth(
         provider="tencent_ifzq",
         symbol=",".join(item.symbol for item in state.watchlist),
         last_success_at=latest.timestamp,
         latency_ms=0,
-        missing_candle_count=len(errors),
-        last_error="；".join(errors) if errors else None,
+        missing_candle_count=len(errors) + len(persistence_errors),
+        last_error="；".join([*errors, *persistence_errors]) if errors or persistence_errors else None,
     )
 
 
@@ -381,6 +402,13 @@ def _initial_state() -> AppState:
             available_cash=200000,
             t_quantity=100,
         ),
+        Position(
+            symbol="000636",
+            base_quantity=500,
+            cost_price=0,
+            available_cash=200000,
+            t_quantity=100,
+        ),
     ]
     initial_signal = evaluate_signal(candles, [], positions[0], health, now=candles[-1].timestamp)
     return AppState(
@@ -388,6 +416,7 @@ def _initial_state() -> AppState:
             WatchSymbol(symbol="300308", name="中际旭创"),
             WatchSymbol(symbol="300502", name="新易盛"),
             WatchSymbol(symbol="600487", name="亨通光电"),
+            WatchSymbol(symbol="000636", name="风华高科"),
         ],
         positions=positions,
         candles=candles,
@@ -519,7 +548,7 @@ def _get_or_fetch_day_candles(
     trade_date: date_type,
 ) -> list[Candle]:
     candles = repo.get_minute_bars(symbol, trade_date)
-    if candles:
+    if candles and _cached_day_candles_are_usable(candles):
         return candles
 
     try:
@@ -573,6 +602,13 @@ def _get_or_fetch_day_candles(
             ),
         )
     return sorted(candles, key=lambda candle: candle.timestamp)
+
+
+def _cached_day_candles_are_usable(candles: list[Candle]) -> bool:
+    return all(
+        candle.open > 0 and candle.high > 0 and candle.low > 0 and candle.close > 0
+        for candle in candles
+    )
 
 
 def _context_day_candles(
@@ -711,7 +747,103 @@ def _should_keep_existing_realtime_signal(existing: Signal, incoming: Signal) ->
     return (
         existing.needs_llm_review
         and existing.llm_status in {"ok", "failed"}
-        and not incoming.needs_llm_review
+        and (not incoming.needs_llm_review or incoming.llm_status == "pending")
+    )
+
+
+def _persist_realtime_signal(
+    repo: PostgresRepository | None,
+    signal: Signal,
+    price: float,
+) -> str | None:
+    if repo is None or not signal.needs_llm_review or signal.llm_status not in {"ok", "failed"}:
+        return None
+    try:
+        repo.init_schema()
+        repo.save_replay_points([_signal_to_replay_point(signal, price)], strict=True)
+    except Exception as exc:
+        return _format_provider_error(exc)
+    return None
+
+
+def _hydrate_realtime_signals_from_repo(
+    repo: PostgresRepository,
+    state: AppState,
+    symbol: str,
+    trade_date: date_type,
+    latest_timestamp: datetime,
+) -> str | None:
+    try:
+        repo.init_schema()
+        points = repo.get_replay_points(symbol, trade_date, strict=True)
+    except Exception as exc:
+        return _format_provider_error(exc)
+
+    for point in points:
+        signal = _replay_point_to_signal(point)
+        if signal is None or signal.timestamp > latest_timestamp:
+            continue
+        _upsert_signal(state, signal)
+    return None
+
+
+def _signal_to_replay_point(signal: Signal, price: float) -> ReplayPoint:
+    review = signal.llm_review
+    confidence = review.confidence if review else signal.confidence
+    return ReplayPoint(
+        symbol=signal.symbol,
+        timestamp=signal.timestamp.isoformat(),
+        action=signal.action.value,
+        kind=signal.kind.value,
+        price=price,
+        confidence=confidence,
+        rule_ids=signal.rule_ids,
+        reason=signal.reason,
+        risks=signal.risks + (review.risks if review else []),
+        llm_status=signal.llm_status,
+        llm_action=review.action.value if review else None,
+        llm_confidence=review.confidence if review else None,
+        llm_summary=review.summary if review else None,
+        llm_reasons=review.reasons if review else [],
+        wait_for=review.wait_for if review else [],
+        execution_allowed=review.execution_allowed if review else None,
+        execution_blockers=review.execution_blockers if review else [],
+    )
+
+
+def _replay_point_to_signal(point: ReplayPoint) -> Signal | None:
+    try:
+        timestamp = datetime.fromisoformat(point.timestamp)
+        llm_review = _replay_point_review(point)
+        return Signal(
+            symbol=point.symbol,
+            timestamp=timestamp,
+            kind=point.kind,
+            action=point.action,
+            confidence=point.llm_confidence if point.llm_confidence is not None else point.confidence,
+            rule_ids=point.rule_ids,
+            reason=point.reason,
+            risks=point.risks,
+            source_fresh=True,
+            llm_status=point.llm_status,
+            llm_review=llm_review,
+        )
+    except Exception:
+        return None
+
+
+def _replay_point_review(point: ReplayPoint) -> LlmReview | None:
+    if point.llm_action is None or point.llm_confidence is None or point.llm_summary is None:
+        return None
+    return LlmReview(
+        action=point.llm_action,
+        confidence=point.llm_confidence,
+        summary=point.llm_summary,
+        reasons=point.llm_reasons,
+        risks=[],
+        wait_for=point.wait_for,
+        execution_allowed=point.execution_allowed if point.execution_allowed is not None else True,
+        execution_blockers=point.execution_blockers,
     )
 
 
@@ -739,6 +871,69 @@ def _review_candidate_signal(
         market_context=market_context,
     )
     return asyncio.run(reviewer.review(signal, context))
+
+
+def _queue_realtime_review(
+    signal: Signal,
+    candles: list[Candle],
+    position: Position,
+    state: AppState,
+    reviewer: LlmReviewer,
+    repo: PostgresRepository | None,
+    price: float,
+    market_context: dict | None = None,
+) -> Signal:
+    if not signal.needs_llm_review:
+        return signal
+    existing = _existing_reviewed_signal(state, signal)
+    if existing is not None:
+        return existing
+
+    key = _signal_key(signal)
+    with state._review_lock:
+        if key in state._reviewing_signal_keys:
+            return signal
+        state._reviewing_signal_keys.add(key)
+
+    context = build_review_context(
+        signal,
+        candles,
+        position,
+        [*_recent_candidate_signals(state, signal.symbol), signal],
+        market_context=market_context,
+    )
+    thread = threading.Thread(
+        target=_run_realtime_review,
+        args=(state, reviewer, repo, signal, context, price, key),
+        daemon=True,
+    )
+    thread.start()
+    return signal
+
+
+def _run_realtime_review(
+    state: AppState,
+    reviewer: LlmReviewer,
+    repo: PostgresRepository | None,
+    signal: Signal,
+    context: dict,
+    price: float,
+    key: str,
+) -> None:
+    import asyncio
+
+    try:
+        reviewed = asyncio.run(reviewer.review(signal, context))
+        with state._review_lock:
+            _upsert_signal(state, reviewed)
+        _persist_realtime_signal(repo, reviewed, price)
+    finally:
+        with state._review_lock:
+            state._reviewing_signal_keys.discard(key)
+
+
+def _signal_key(signal: Signal) -> str:
+    return f"{signal.symbol}|{signal.timestamp.isoformat()}|{signal.kind.value}|{signal.action.value}"
 
 
 def _existing_reviewed_signal(state: AppState, signal: Signal) -> Signal | None:

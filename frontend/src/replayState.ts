@@ -80,7 +80,7 @@ export function replaySourceLabel({
 export function replayPointReviewLabel(point: Pick<ReplayPoint, 'llm_status' | 'llm_action'>) {
   if (point.llm_status === 'ok') return `AI${replayActionLabel(point.llm_action ?? 'hold')}`
   if (point.llm_status === 'failed') return 'AI失败'
-  if (point.llm_status === 'pending') return 'AI待复核'
+  if (point.llm_status === 'pending') return 'AI复核中'
   if (point.llm_status === 'not_requested') return 'AI未触发'
   return 'AI未复核'
 }
