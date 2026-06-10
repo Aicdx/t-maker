@@ -36,6 +36,13 @@ import {
   type ReplayResult,
   type ReplaySummary,
 } from './replayState'
+import {
+  buildTradeConfirmationRequest,
+  formatTradeMoney,
+  tradeConfirmationActionLabel,
+  type TradeConfirmationAction,
+  type TradeConfirmationStats,
+} from './tradeStats'
 
 type WatchSymbol = {
   symbol: string
@@ -230,6 +237,29 @@ async function fetchTradingDay(symbol: string, date: string) {
   return (await response.json()) as TradingDayPayload
 }
 
+async function fetchTradeConfirmationStats(date?: string, signal?: AbortSignal) {
+  const query = date ? `?date=${encodeURIComponent(date)}` : ''
+  const response = await fetch(`${API_BASE}/api/trade-confirmations/stats${query}`, { signal })
+  if (!response.ok) throw new Error(await apiErrorMessage(response))
+  return (await response.json()) as TradeConfirmationStats
+}
+
+async function createTradeConfirmation(point: ReplayPoint, action: TradeConfirmationAction, source: string) {
+  const response = await fetch(`${API_BASE}/api/trade-confirmations`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(buildTradeConfirmationRequest(point, action, source)),
+  })
+  if (!response.ok) throw new Error(await apiErrorMessage(response))
+}
+
+async function deleteTradeConfirmation(id: string) {
+  const response = await fetch(`${API_BASE}/api/trade-confirmations/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  })
+  if (!response.ok) throw new Error(await apiErrorMessage(response))
+}
+
 function App() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
   const [loading, setLoading] = useState(true)
@@ -256,6 +286,11 @@ function App() {
   const [playbackStatus, setPlaybackStatus] = useState<'idle' | 'playing' | 'reviewing' | 'done'>('idle')
   const [playbackSymbol, setPlaybackSymbol] = useState<string | null>(null)
   const [playbackDate, setPlaybackDate] = useState<string | null>(null)
+  const [tradeStats, setTradeStats] = useState<TradeConfirmationStats | null>(null)
+  const [tradeStatsLoading, setTradeStatsLoading] = useState(false)
+  const [tradeStatsError, setTradeStatsError] = useState('')
+  const [tradeSavingAction, setTradeSavingAction] = useState<TradeConfirmationAction | null>(null)
+  const [deletingTradeId, setDeletingTradeId] = useState<string | null>(null)
   const lastLoadedDaysSymbolRef = useRef<string | null>(null)
   const isReplaying = replayReviewLoading || dayLoading
   const currentMonitorStatus = monitorStatus(monitorEnabled, monitorNow)
@@ -268,6 +303,51 @@ function App() {
         : (payload.watchlist[0]?.symbol ?? '300308'),
     )
   }, [])
+
+  const loadTradeStats = useCallback(async (date?: string, signal?: AbortSignal) => {
+    try {
+      setTradeStatsLoading(true)
+      setTradeStatsError('')
+      const stats = await fetchTradeConfirmationStats(date, signal)
+      if (signal?.aborted) return
+      setTradeStats(stats)
+    } catch (err) {
+      if (signal?.aborted) return
+      setTradeStatsError(err instanceof Error ? err.message : '做T统计加载失败')
+    } finally {
+      if (!signal?.aborted) setTradeStatsLoading(false)
+    }
+  }, [])
+
+  async function confirmSelectedTrade(action: TradeConfirmationAction) {
+    if (!selectedReplayPoint) {
+      setTradeStatsError('请先选择一个 AI 低吸或高抛点位')
+      return
+    }
+    try {
+      setTradeSavingAction(action)
+      setTradeStatsError('')
+      await createTradeConfirmation(selectedReplayPoint, action, monitorEnabled ? 'monitor' : 'replay')
+      await loadTradeStats(selectedReplayPoint.timestamp.slice(0, 10))
+    } catch (err) {
+      setTradeStatsError(err instanceof Error ? err.message : '确认点位保存失败')
+    } finally {
+      setTradeSavingAction(null)
+    }
+  }
+
+  async function removeTradeConfirmation(id: string) {
+    try {
+      setDeletingTradeId(id)
+      setTradeStatsError('')
+      await deleteTradeConfirmation(id)
+      await loadTradeStats(tradeStats?.date)
+    } catch (err) {
+      setTradeStatsError(err instanceof Error ? err.message : '确认记录删除失败')
+    } finally {
+      setDeletingTradeId(null)
+    }
+  }
 
   async function runSelectedDaySymbolReview() {
     if (!selectedTradeDate) {
@@ -381,6 +461,12 @@ function App() {
 
     return () => controller.abort()
   }, [applySnapshotPayload])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    void loadTradeStats(undefined, controller.signal)
+    return () => controller.abort()
+  }, [loadTradeStats])
 
   useEffect(() => {
     if (!monitorEnabled) return
@@ -786,10 +872,29 @@ function App() {
             <ReplayPointCard point={selectedReplayPoint} />
             <SignalCard signal={selectedSignal} />
             <div className="manual-actions">
-              <button type="button">已低吸</button>
-              <button type="button">已高抛</button>
+              <button
+                type="button"
+                disabled={!selectedReplayPoint || tradeSavingAction !== null}
+                onClick={() => void confirmSelectedTrade('buy')}
+              >
+                {tradeSavingAction === 'buy' ? '保存中' : '已低吸'}
+              </button>
+              <button
+                type="button"
+                disabled={!selectedReplayPoint || tradeSavingAction !== null}
+                onClick={() => void confirmSelectedTrade('sell')}
+              >
+                {tradeSavingAction === 'sell' ? '保存中' : '已高抛'}
+              </button>
               <button type="button">忽略</button>
             </div>
+            <TradeStatsPanel
+              stats={tradeStats}
+              loading={tradeStatsLoading}
+              error={tradeStatsError}
+              deletingId={deletingTradeId}
+              onDelete={(id) => void removeTradeConfirmation(id)}
+            />
             <p className="risk-copy">仅作盘中观察与决策辅助，不自动下单，所有操作需要人工确认。</p>
           </aside>
         </section>
@@ -1160,6 +1265,78 @@ function SignalTimeline({ signals }: { signals: Signal[] }) {
         </div>
       ))}
     </div>
+  )
+}
+
+function TradeStatsPanel({
+  stats,
+  loading,
+  error,
+  deletingId,
+  onDelete,
+}: {
+  stats: TradeConfirmationStats | null
+  loading: boolean
+  error: string
+  deletingId: string | null
+  onDelete: (id: string) => void
+}) {
+  return (
+    <section className="trade-stats">
+      <div className="trade-stats-head">
+        <div>
+          <span>做T统计</span>
+          <strong>{stats?.date ?? '--'}</strong>
+        </div>
+        {loading && <small>刷新中</small>}
+      </div>
+      {error && <p className="trade-stats-error">{error}</p>}
+      <div className="trade-stats-metrics">
+        <Metric label="差价收益" value={formatTradeMoney(stats?.summary.total_pnl ?? 0)} />
+        <Metric label="已配对" value={String(stats?.summary.paired_count ?? 0)} />
+        <Metric label="待配对" value={String(stats?.summary.unpaired_count ?? 0)} />
+        <Metric label="记录" value={String(stats?.summary.record_count ?? 0)} />
+      </div>
+      {stats?.pairs.length ? (
+        <div className="trade-pairs">
+          {stats.pairs.slice(0, 4).map((pair) => (
+            <div key={`${pair.buy_id}-${pair.sell_id}`} className="trade-pair-row">
+              <span>{pair.symbol}</span>
+              <strong>{formatTradeMoney(pair.pnl)}</strong>
+              <small>
+                {formatNullable(pair.buy_price)} → {formatNullable(pair.sell_price)}
+              </small>
+              <div className="trade-pair-actions">
+                <button type="button" disabled={deletingId === pair.buy_id} onClick={() => onDelete(pair.buy_id)}>
+                  删低吸
+                </button>
+                <button type="button" disabled={deletingId === pair.sell_id} onClick={() => onDelete(pair.sell_id)}>
+                  删高抛
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="trade-empty">暂无配对记录</div>
+      )}
+      {stats?.unpaired.length ? (
+        <div className="trade-unpaired">
+          <span>待配对</span>
+          {stats.unpaired.slice(0, 5).map((item) => (
+            <div key={item.id} className="trade-unpaired-row">
+              <strong>{tradeConfirmationActionLabel(item.confirm_action)}</strong>
+              <small>
+                {item.symbol} {formatTime(item.signal_timestamp)} {formatNullable(item.price)}
+              </small>
+              <button type="button" disabled={deletingId === item.id} onClick={() => onDelete(item.id)}>
+                删除
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </section>
   )
 }
 

@@ -1056,6 +1056,150 @@ code {
   font-size: 13px;
 }
 
+.manual-actions button:disabled,
+.trade-stats button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.trade-stats {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid #e6ece9;
+  padding-top: 12px;
+}
+
+.trade-stats-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.trade-stats-head div {
+  display: grid;
+  gap: 2px;
+}
+
+.trade-stats-head span,
+.trade-unpaired > span {
+  color: #687570;
+  font-size: 12px;
+}
+
+.trade-stats-head strong {
+  color: #17211f;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 14px;
+}
+
+.trade-stats-head small {
+  color: #687570;
+  font-size: 12px;
+}
+
+.trade-stats-error {
+  margin: 0;
+  border: 1px solid #efc2c2;
+  border-radius: 6px;
+  background: #fff8f8;
+  padding: 8px;
+  color: #8c2f2f;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.trade-stats-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.trade-stats-metrics .metric {
+  min-width: 0;
+}
+
+.trade-stats-metrics .metric strong {
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 14px;
+}
+
+.trade-pairs,
+.trade-unpaired {
+  display: grid;
+  gap: 8px;
+}
+
+.trade-pair-row,
+.trade-unpaired-row {
+  display: grid;
+  gap: 6px;
+  border: 1px solid #e6ece9;
+  border-radius: 8px;
+  background: #fbfdfc;
+  padding: 10px;
+}
+
+.trade-pair-row {
+  grid-template-columns: 64px 1fr;
+  align-items: center;
+}
+
+.trade-pair-row span,
+.trade-unpaired-row strong {
+  color: #263330;
+  font-size: 13px;
+}
+
+.trade-pair-row > strong {
+  justify-self: end;
+  color: #1d6b45;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 16px;
+}
+
+.trade-pair-row small,
+.trade-unpaired-row small {
+  grid-column: 1 / -1;
+  color: #687570;
+  font-size: 12px;
+}
+
+.trade-pair-actions {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.trade-pair-actions button,
+.trade-unpaired-row button {
+  min-height: 30px;
+  border: 1px solid #d7dddb;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #43504c;
+  font-size: 12px;
+}
+
+.trade-unpaired-row {
+  grid-template-columns: 48px 1fr auto;
+  align-items: center;
+}
+
+.trade-unpaired-row small {
+  grid-column: auto;
+}
+
+.trade-empty {
+  border: 1px dashed #d7dddb;
+  border-radius: 8px;
+  padding: 12px;
+  color: #687570;
+  font-size: 13px;
+  text-align: center;
+}
+
 .risk-copy {
   margin: 0;
   line-height: 1.5;
