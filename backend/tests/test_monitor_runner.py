@@ -152,6 +152,17 @@ async def test_tick_sends_one_notification_for_eligible_signal() -> None:
     assert runner.state.last_error is None
 
 
+def test_monitor_runner_defaults_to_five_minute_dedup_window() -> None:
+    runner = MonitorRunner(
+        snapshot_service=FakeSnapshotService([]),
+        analyzer=FakeAnalyzer(),
+        notifier=FakeNotifier(),
+        policy=MonitorPolicy(min_ai_confidence=0.6),
+    )
+
+    assert runner.dedup_window.total_seconds() == 5 * 60
+
+
 @pytest.mark.asyncio
 async def test_tick_runs_sync_snapshot_refresh_outside_event_loop() -> None:
     runner = MonitorRunner(

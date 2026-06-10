@@ -38,7 +38,7 @@ class MonitorRunner:
         notifier: TextNotifier,
         policy: MonitorPolicy,
         interval_seconds: float = 30,
-        dedup_window_minutes: int = 240,
+        dedup_window_minutes: int = 5,
     ) -> None:
         self.snapshot_service = snapshot_service
         self.analyzer = analyzer

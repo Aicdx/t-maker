@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     monitor_min_ai_confidence: float = Field(default=0.6, ge=0, le=1)
     monitor_notify_hold: bool = False
     monitor_notify_suspected: bool = True
-    monitor_dedup_window_minutes: int = Field(default=240, gt=0)
+    monitor_dedup_window_minutes: int = Field(default=5, gt=0)
     codex_analysis_enabled: bool = True
     feishu_webhook_url: str = ""
     feishu_timeout_seconds: float = Field(default=8, gt=0)
