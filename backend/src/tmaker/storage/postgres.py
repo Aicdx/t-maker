@@ -3,12 +3,13 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from datetime import date, datetime
 from typing import Any
+from uuid import uuid4
 
 import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from tmaker.domain.models import Candle, MarketQuote
+from tmaker.domain.models import Candle, MarketQuote, TradeConfirmation, TradeConfirmationCreate
 from tmaker.strategy.replay import ReplayPoint
 
 
@@ -75,6 +76,24 @@ CREATE TABLE IF NOT EXISTS t_signal_points (
 
 CREATE INDEX IF NOT EXISTS idx_t_signal_points_symbol_date
   ON t_signal_points (symbol, trade_date, timestamp);
+
+CREATE TABLE IF NOT EXISTS t_trade_confirmations (
+  id UUID PRIMARY KEY,
+  symbol TEXT NOT NULL,
+  trade_date DATE NOT NULL,
+  signal_timestamp TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+  signal_action TEXT NOT NULL CHECK (signal_action IN ('buy', 'sell', 'hold')),
+  confirm_action TEXT NOT NULL CHECK (confirm_action IN ('buy', 'sell')),
+  price NUMERIC NOT NULL CHECK (price >= 0),
+  quantity INTEGER NOT NULL DEFAULT 100 CHECK (quantity > 0),
+  source TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  llm_confidence NUMERIC CHECK (llm_confidence IS NULL OR (llm_confidence >= 0 AND llm_confidence <= 1)),
+  created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_t_trade_confirmations_date_symbol
+  ON t_trade_confirmations (trade_date, symbol, signal_timestamp, created_at);
 """
 
 
@@ -344,6 +363,67 @@ class PostgresRepository:
                 )
                 return [_row_to_replay_point(row) for row in cursor.fetchall()]
 
+    def save_trade_confirmation(self, confirmation: TradeConfirmationCreate) -> TradeConfirmation:
+        row = _trade_confirmation_to_row(confirmation)
+        row["id"] = str(uuid4())
+        with self._connect() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(
+                    """
+                    INSERT INTO t_trade_confirmations (
+                      id, symbol, trade_date, signal_timestamp, signal_action, confirm_action,
+                      price, quantity, source, reason, llm_confidence
+                    )
+                    VALUES (
+                      %(id)s, %(symbol)s, %(trade_date)s, %(signal_timestamp)s,
+                      %(signal_action)s, %(confirm_action)s, %(price)s, %(quantity)s,
+                      %(source)s, %(reason)s, %(llm_confidence)s
+                    )
+                    RETURNING id::text AS id, created_at
+                    """,
+                    row,
+                )
+                saved_rows = cursor.fetchall()
+            connection.commit()
+        saved = saved_rows[0]
+        return TradeConfirmation(
+            id=saved["id"],
+            created_at=saved["created_at"],
+            **confirmation.model_dump(),
+            trade_date=row["trade_date"],
+        )
+
+    def list_trade_confirmations(self, trade_date: date) -> list[TradeConfirmation]:
+        with self._connect() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(
+                    """
+                    SELECT
+                      id::text AS id, symbol, trade_date, signal_timestamp, signal_action,
+                      confirm_action, price, quantity, source, reason, llm_confidence, created_at
+                    FROM t_trade_confirmations
+                    WHERE trade_date = %(trade_date)s
+                    ORDER BY symbol, signal_timestamp, created_at
+                    """,
+                    {"trade_date": trade_date},
+                )
+                return [_row_to_trade_confirmation(row) for row in cursor.fetchall()]
+
+    def delete_trade_confirmation(self, confirmation_id: str) -> bool:
+        with self._connect() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(
+                    """
+                    DELETE FROM t_trade_confirmations
+                    WHERE id = %(id)s
+                    RETURNING id::text AS id
+                    """,
+                    {"id": confirmation_id},
+                )
+                rows = cursor.fetchall()
+            connection.commit()
+        return bool(rows)
+
     def _connect(self) -> Any:
         return self.connection_factory(self.database_url)
 
@@ -422,6 +502,38 @@ def _row_to_replay_point(row: dict[str, Any]) -> ReplayPoint:
         wait_for=list(row["wait_for"]),
         execution_allowed=row["execution_allowed"],
         execution_blockers=list(row["execution_blockers"]),
+    )
+
+
+def _trade_confirmation_to_row(confirmation: TradeConfirmationCreate) -> dict[str, Any]:
+    return {
+        "symbol": confirmation.symbol,
+        "trade_date": confirmation.signal_timestamp.date(),
+        "signal_timestamp": confirmation.signal_timestamp,
+        "signal_action": confirmation.signal_action.value,
+        "confirm_action": confirmation.confirm_action.value,
+        "price": confirmation.price,
+        "quantity": confirmation.quantity,
+        "source": confirmation.source,
+        "reason": confirmation.reason,
+        "llm_confidence": confirmation.llm_confidence,
+    }
+
+
+def _row_to_trade_confirmation(row: dict[str, Any]) -> TradeConfirmation:
+    return TradeConfirmation(
+        id=row["id"],
+        symbol=row["symbol"],
+        trade_date=row["trade_date"],
+        signal_timestamp=row["signal_timestamp"],
+        signal_action=row["signal_action"],
+        confirm_action=row["confirm_action"],
+        price=float(row["price"]),
+        quantity=int(row["quantity"]),
+        source=row["source"],
+        reason=row["reason"],
+        llm_confidence=float(row["llm_confidence"]) if row["llm_confidence"] is not None else None,
+        created_at=row["created_at"],
     )
 
 

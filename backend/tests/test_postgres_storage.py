@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 
 from psycopg.types.json import Jsonb
 
-from tmaker.domain.models import Candle
+from tmaker.domain.models import Candle, SignalAction, TradeConfirmationAction, TradeConfirmationCreate
 from tmaker.storage.postgres import PostgresRepository, SCHEMA_SQL
 from tmaker.strategy.replay import ReplayPoint
 
@@ -13,9 +13,11 @@ def test_schema_sql_creates_market_and_signal_tables() -> None:
     assert "CREATE TABLE IF NOT EXISTS stock_minute_bars" in SCHEMA_SQL
     assert "CREATE TABLE IF NOT EXISTS stock_quotes" in SCHEMA_SQL
     assert "CREATE TABLE IF NOT EXISTS t_signal_points" in SCHEMA_SQL
+    assert "CREATE TABLE IF NOT EXISTS t_trade_confirmations" in SCHEMA_SQL
     assert "PRIMARY KEY (symbol, timestamp)" in SCHEMA_SQL
     assert "PRIMARY KEY (symbol, trade_date)" in SCHEMA_SQL
     assert "PRIMARY KEY (symbol, timestamp, action, strict_mode)" in SCHEMA_SQL
+    assert "idx_t_trade_confirmations_date_symbol" in SCHEMA_SQL
 
 
 def test_repository_saves_and_reads_minute_bars() -> None:
@@ -170,6 +172,64 @@ def test_repository_replaces_replay_points_for_symbol_day() -> None:
     assert connection.executemany_calls
 
 
+def test_repository_saves_and_reads_trade_confirmations() -> None:
+    created_at = datetime(2026, 6, 10, 10, 24, 5)
+    connection = FakeConnection(
+        rows=[
+            [{"id": "confirm-1", "created_at": created_at}],
+            [
+                {
+                    "id": "confirm-1",
+                    "symbol": "300308",
+                    "trade_date": date(2026, 6, 10),
+                    "signal_timestamp": datetime(2026, 6, 10, 10, 24),
+                    "signal_action": "buy",
+                    "confirm_action": "buy",
+                    "price": 123.45,
+                    "quantity": 100,
+                    "source": "monitor",
+                    "reason": "AI低吸点位",
+                    "llm_confidence": 0.72,
+                    "created_at": created_at,
+                }
+            ],
+        ]
+    )
+    repo = PostgresRepository("postgresql://example", connection_factory=lambda _: connection)
+    payload = TradeConfirmationCreate(
+        symbol="300308",
+        signal_timestamp=datetime(2026, 6, 10, 10, 24),
+        signal_action=SignalAction.BUY,
+        confirm_action=TradeConfirmationAction.BUY,
+        price=123.45,
+        quantity=100,
+        source="monitor",
+        reason="AI低吸点位",
+        llm_confidence=0.72,
+    )
+
+    saved = repo.save_trade_confirmation(payload)
+    confirmations = repo.list_trade_confirmations(date(2026, 6, 10))
+
+    insert_call = connection.execute_calls[0]
+    assert "INSERT INTO t_trade_confirmations" in insert_call["sql"]
+    assert insert_call["params"]["trade_date"] == date(2026, 6, 10)
+    assert saved.id == "confirm-1"
+    assert confirmations[0].symbol == "300308"
+    assert confirmations[0].price == 123.45
+
+
+def test_repository_deletes_trade_confirmation() -> None:
+    connection = FakeConnection(rows=[[{"id": "confirm-1"}], []])
+    repo = PostgresRepository("postgresql://example", connection_factory=lambda _: connection)
+
+    assert repo.delete_trade_confirmation("confirm-1") is True
+    assert repo.delete_trade_confirmation("missing") is False
+
+    assert "DELETE FROM t_trade_confirmations" in connection.execute_calls[0]["sql"]
+    assert connection.execute_calls[0]["params"] == {"id": "confirm-1"}
+
+
 class FakeConnection:
     def __init__(self, rows: list[list[dict]] | None = None) -> None:
         self.rows = rows or []
@@ -202,7 +262,8 @@ class FakeCursor:
 
     def execute(self, sql: str, params: object | None = None) -> None:
         self.connection.execute_calls.append({"sql": sql, "params": params})
-        if sql.lstrip().lower().startswith("select") and self.connection.rows:
+        lowered_sql = sql.lstrip().lower()
+        if (lowered_sql.startswith("select") or "returning" in lowered_sql) and self.connection.rows:
             self.current_rows = self.connection.rows.pop(0)
 
     def executemany(self, sql: str, params_seq: list[dict]) -> None:
