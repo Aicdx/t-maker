@@ -12,7 +12,16 @@ import httpx
 from pydantic import BaseModel, Field, PrivateAttr
 
 from tmaker.config import PROJECT_DIR, get_settings
-from tmaker.domain.models import Candle, LlmReview, MarketQuote, Position, ProviderHealth, Signal
+from tmaker.domain.models import (
+    Candle,
+    LlmReview,
+    MarketQuote,
+    Position,
+    ProviderHealth,
+    Signal,
+    TradeConfirmationCreate,
+    build_trade_confirmation_stats,
+)
 from tmaker.llm.codex_analysis import CodexAnalysisClient, CodexSignalAnalyzer
 from tmaker.llm.context import build_review_context
 from tmaker.llm.openai_client import OpenAICompatibleClient
@@ -150,6 +159,27 @@ def create_app(
             raise HTTPException(status_code=503, detail=str(exc)) from exc
         except (FeishuDeliveryError, httpx.HTTPError) as exc:
             raise HTTPException(status_code=502, detail=_format_provider_error(exc)) from exc
+        return {"status": "ok"}
+
+    @app.post("/api/trade-confirmations")
+    def create_trade_confirmation(confirmation: TradeConfirmationCreate) -> dict:
+        repo.init_schema()
+        saved = repo.save_trade_confirmation(confirmation)
+        return saved.model_dump(mode="json")
+
+    @app.get("/api/trade-confirmations/stats")
+    def trade_confirmation_stats(date: str | None = None) -> dict:
+        trade_date = _parse_trade_date(date) if date else _today()
+        repo.init_schema()
+        confirmations = repo.list_trade_confirmations(trade_date)
+        stats = build_trade_confirmation_stats(confirmations, trade_date)
+        return stats.model_dump(mode="json")
+
+    @app.delete("/api/trade-confirmations/{confirmation_id}")
+    def delete_trade_confirmation(confirmation_id: str) -> dict:
+        repo.init_schema()
+        if not repo.delete_trade_confirmation(confirmation_id):
+            raise HTTPException(status_code=404, detail="Trade confirmation not found")
         return {"status": "ok"}
 
     @app.get("/api/trading-days")
@@ -600,6 +630,10 @@ def _parse_trade_date(value: str) -> date_type:
         return date_type.fromisoformat(value)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid date, expected YYYY-MM-DD") from exc
+
+
+def _today() -> date_type:
+    return date_type.today()
 
 
 def _fetch_and_cache_symbol_history(

@@ -6,10 +6,11 @@ import time
 
 from fastapi.testclient import TestClient
 import httpx
+import pytest
 
 import tmaker.api.app as app_module
 from tmaker.api.app import create_app
-from tmaker.domain.models import Candle, MarketQuote
+from tmaker.domain.models import Candle, MarketQuote, TradeConfirmation, TradeConfirmationCreate
 from tmaker.market.akshare_provider import MarketDataChannelUnavailable, MarketDataUnavailable
 from tmaker.notify.feishu import FeishuConfigError, FeishuDeliveryError
 from tmaker.strategy.replay import ReplayPoint
@@ -146,6 +147,7 @@ class FakeRepository:
         self.minute_bars: dict[tuple[str, date], list[Candle]] = {}
         self.points: dict[tuple[str, date, bool], list[ReplayPoint]] = {}
         self.quotes: dict[tuple[str, date], MarketQuote] = {}
+        self.confirmations: dict[str, TradeConfirmation] = {}
         self.saved_bars: list[Candle] = []
         self.saved_points: list[ReplayPoint] = []
         self.schema_initialized = False
@@ -202,6 +204,27 @@ class FakeRepository:
 
     def get_replay_points(self, symbol: str, trade_date: date, strict: bool) -> list[ReplayPoint]:
         return self.points.get((symbol, trade_date, strict), [])
+
+    def save_trade_confirmation(self, confirmation: TradeConfirmationCreate) -> TradeConfirmation:
+        confirmation_id = f"confirm-{len(self.confirmations) + 1}"
+        saved = TradeConfirmation(
+            id=confirmation_id,
+            trade_date=confirmation.signal_timestamp.date(),
+            created_at=confirmation.signal_timestamp,
+            **confirmation.model_dump(),
+        )
+        self.confirmations[confirmation_id] = saved
+        return saved
+
+    def list_trade_confirmations(self, trade_date: date) -> list[TradeConfirmation]:
+        return [
+            confirmation
+            for confirmation in self.confirmations.values()
+            if confirmation.trade_date == trade_date
+        ]
+
+    def delete_trade_confirmation(self, confirmation_id: str) -> bool:
+        return self.confirmations.pop(confirmation_id, None) is not None
 
 
 def test_health_endpoint_reports_ok() -> None:
@@ -513,6 +536,118 @@ def test_monitor_test_feishu_maps_network_error_to_bad_gateway() -> None:
 
     assert response.status_code == 502
     assert "network" in response.json()["detail"]
+
+
+def test_trade_confirmation_api_saves_selected_ai_point() -> None:
+    repository = FakeRepository()
+    client = TestClient(create_app(repository=repository))
+
+    response = client.post(
+        "/api/trade-confirmations",
+        json={
+            "symbol": "300308",
+            "signal_timestamp": "2026-06-10T10:24:00",
+            "signal_action": "buy",
+            "confirm_action": "buy",
+            "price": 123.45,
+            "quantity": 100,
+            "source": "monitor",
+            "reason": "AI低吸点位",
+            "llm_confidence": 0.72,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["id"] == "confirm-1"
+    assert payload["trade_date"] == "2026-06-10"
+    assert repository.confirmations["confirm-1"].confirm_action == "buy"
+
+
+def test_trade_confirmation_stats_defaults_to_today(monkeypatch: pytest.MonkeyPatch) -> None:
+    repository = FakeRepository()
+    client = TestClient(create_app(repository=repository))
+    monkeypatch.setattr(app_module, "_today", lambda: date(2026, 6, 10))
+    client.post(
+        "/api/trade-confirmations",
+        json={
+            "symbol": "300308",
+            "signal_timestamp": "2026-06-10T10:24:00",
+            "signal_action": "buy",
+            "confirm_action": "buy",
+            "price": 123.4,
+            "source": "monitor",
+            "reason": "AI低吸点位",
+        },
+    )
+    client.post(
+        "/api/trade-confirmations",
+        json={
+            "symbol": "300308",
+            "signal_timestamp": "2026-06-10T13:12:00",
+            "signal_action": "sell",
+            "confirm_action": "sell",
+            "price": 125.1,
+            "source": "monitor",
+            "reason": "AI高抛点位",
+        },
+    )
+
+    response = client.get("/api/trade-confirmations/stats")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["date"] == "2026-06-10"
+    assert payload["summary"]["paired_count"] == 1
+    assert payload["summary"]["total_pnl"] == 170.0
+
+
+def test_trade_confirmation_stats_honors_date_query(monkeypatch: pytest.MonkeyPatch) -> None:
+    repository = FakeRepository()
+    client = TestClient(create_app(repository=repository))
+    monkeypatch.setattr(app_module, "_today", lambda: date(2026, 6, 10))
+    client.post(
+        "/api/trade-confirmations",
+        json={
+            "symbol": "300308",
+            "signal_timestamp": "2026-06-09T10:24:00",
+            "signal_action": "buy",
+            "confirm_action": "buy",
+            "price": 123.4,
+            "source": "monitor",
+            "reason": "AI低吸点位",
+        },
+    )
+
+    today_response = client.get("/api/trade-confirmations/stats")
+    selected_response = client.get("/api/trade-confirmations/stats?date=2026-06-09")
+
+    assert today_response.json()["summary"]["record_count"] == 0
+    assert selected_response.json()["summary"]["record_count"] == 1
+
+
+def test_trade_confirmation_delete_removes_record_or_returns_404() -> None:
+    repository = FakeRepository()
+    client = TestClient(create_app(repository=repository))
+    created = client.post(
+        "/api/trade-confirmations",
+        json={
+            "symbol": "300308",
+            "signal_timestamp": "2026-06-10T10:24:00",
+            "signal_action": "buy",
+            "confirm_action": "buy",
+            "price": 123.4,
+            "source": "monitor",
+            "reason": "AI低吸点位",
+        },
+    ).json()
+
+    delete_response = client.delete(f"/api/trade-confirmations/{created['id']}")
+    missing_response = client.delete(f"/api/trade-confirmations/{created['id']}")
+
+    assert delete_response.status_code == 200
+    assert delete_response.json() == {"status": "ok"}
+    assert missing_response.status_code == 404
 
 
 def _provider_candles(symbol: str = "300308", close: float = 151.6) -> list[Candle]:
