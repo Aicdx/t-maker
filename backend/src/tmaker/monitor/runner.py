@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime
 from datetime import timedelta
+from collections.abc import Callable
 from typing import Any, Protocol
 
 from pydantic import TypeAdapter
@@ -39,6 +40,7 @@ class MonitorRunner:
         policy: MonitorPolicy,
         interval_seconds: float = 30,
         dedup_window_minutes: int = 5,
+        notifications_enabled: Callable[[], bool] | None = None,
     ) -> None:
         self.snapshot_service = snapshot_service
         self.analyzer = analyzer
@@ -46,6 +48,7 @@ class MonitorRunner:
         self.policy = policy
         self.interval_seconds = interval_seconds
         self.dedup_window = timedelta(minutes=dedup_window_minutes)
+        self.notifications_enabled = notifications_enabled or (lambda: True)
         self.state = MonitorRuntimeState()
         self._task: asyncio.Task[None] | None = None
         self._notified_keys: dict[str, datetime] = {}
@@ -95,6 +98,8 @@ class MonitorRunner:
                 continue
             key = signal_notification_key(signal)
             if key in self._notified_keys:
+                continue
+            if not self.notifications_enabled():
                 continue
             quote = quotes.get(signal.symbol)
             try:

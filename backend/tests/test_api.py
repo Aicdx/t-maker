@@ -148,6 +148,7 @@ class FakeRepository:
         self.points: dict[tuple[str, date, bool], list[ReplayPoint]] = {}
         self.quotes: dict[tuple[str, date], MarketQuote] = {}
         self.confirmations: dict[str, TradeConfirmation] = {}
+        self.bool_settings: dict[str, bool] = {}
         self.saved_bars: list[Candle] = []
         self.saved_points: list[ReplayPoint] = []
         self.schema_initialized = False
@@ -225,6 +226,12 @@ class FakeRepository:
 
     def delete_trade_confirmation(self, confirmation_id: str) -> bool:
         return self.confirmations.pop(confirmation_id, None) is not None
+
+    def get_bool_setting(self, key: str, default: bool) -> bool:
+        return self.bool_settings.get(key, default)
+
+    def set_bool_setting(self, key: str, value: bool) -> None:
+        self.bool_settings[key] = value
 
 
 def test_health_endpoint_reports_ok() -> None:
@@ -536,6 +543,25 @@ def test_monitor_test_feishu_maps_network_error_to_bad_gateway() -> None:
 
     assert response.status_code == 502
     assert "network" in response.json()["detail"]
+
+
+def test_notification_settings_api_reads_and_updates_feishu_flag() -> None:
+    repository = FakeRepository()
+    client = TestClient(_test_app(repository=repository))
+
+    initial = client.get("/api/settings/notifications")
+    updated = client.put(
+        "/api/settings/notifications",
+        json={"feishu_notifications_enabled": False},
+    )
+    refreshed = client.get("/api/settings/notifications")
+
+    assert initial.status_code == 200
+    assert initial.json() == {"feishu_notifications_enabled": True}
+    assert updated.status_code == 200
+    assert updated.json() == {"feishu_notifications_enabled": False}
+    assert refreshed.json() == {"feishu_notifications_enabled": False}
+    assert repository.bool_settings["feishu_notifications_enabled"] is False
 
 
 def test_trade_confirmation_api_saves_selected_ai_point() -> None:

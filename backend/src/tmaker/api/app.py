@@ -63,6 +63,13 @@ class AppState(BaseModel):
     _review_lock = PrivateAttr(default_factory=threading.Lock)
 
 
+class NotificationSettings(BaseModel):
+    feishu_notifications_enabled: bool = True
+
+
+_FEISHU_NOTIFICATIONS_ENABLED_KEY = "feishu_notifications_enabled"
+
+
 def create_app(
     minute_provider: TencentMarketProvider | None = None,
     review_client: ReviewClient | None = None,
@@ -108,6 +115,7 @@ def create_app(
         ),
         interval_seconds=settings.monitor_interval_seconds,
         dedup_window_minutes=settings.monitor_dedup_window_minutes,
+        notifications_enabled=lambda: _feishu_notifications_enabled(repo),
     )
 
     app.add_middleware(
@@ -160,6 +168,22 @@ def create_app(
         except (FeishuDeliveryError, httpx.HTTPError) as exc:
             raise HTTPException(status_code=502, detail=_format_provider_error(exc)) from exc
         return {"status": "ok"}
+
+    @app.get("/api/settings/notifications")
+    def get_notification_settings() -> dict:
+        repo.init_schema()
+        return NotificationSettings(
+            feishu_notifications_enabled=_feishu_notifications_enabled(repo)
+        ).model_dump(mode="json")
+
+    @app.put("/api/settings/notifications")
+    def update_notification_settings(payload: NotificationSettings) -> dict:
+        repo.init_schema()
+        repo.set_bool_setting(
+            _FEISHU_NOTIFICATIONS_ENABLED_KEY,
+            payload.feishu_notifications_enabled,
+        )
+        return payload.model_dump(mode="json")
 
     @app.post("/api/trade-confirmations")
     def create_trade_confirmation(confirmation: TradeConfirmationCreate) -> dict:
@@ -634,6 +658,11 @@ def _parse_trade_date(value: str) -> date_type:
 
 def _today() -> date_type:
     return date_type.today()
+
+
+def _feishu_notifications_enabled(repo: PostgresRepository) -> bool:
+    repo.init_schema()
+    return repo.get_bool_setting(_FEISHU_NOTIFICATIONS_ENABLED_KEY, default=True)
 
 
 def _fetch_and_cache_symbol_history(

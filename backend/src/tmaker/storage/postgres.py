@@ -94,6 +94,12 @@ CREATE TABLE IF NOT EXISTS t_trade_confirmations (
 
 CREATE INDEX IF NOT EXISTS idx_t_trade_confirmations_date_symbol
   ON t_trade_confirmations (trade_date, symbol, signal_timestamp, created_at);
+
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL,
+  updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now()
+);
 """
 
 
@@ -423,6 +429,38 @@ class PostgresRepository:
                 rows = cursor.fetchall()
             connection.commit()
         return bool(rows)
+
+    def get_bool_setting(self, key: str, default: bool) -> bool:
+        with self._connect() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(
+                    """
+                    SELECT value
+                    FROM app_settings
+                    WHERE key = %(key)s
+                    """,
+                    {"key": key},
+                )
+                rows = cursor.fetchall()
+        if not rows:
+            return default
+        value = rows[0]["value"]
+        return value if isinstance(value, bool) else default
+
+    def set_bool_setting(self, key: str, value: bool) -> None:
+        with self._connect() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    INSERT INTO app_settings (key, value)
+                    VALUES (%(key)s, %(value)s)
+                    ON CONFLICT (key) DO UPDATE SET
+                      value = EXCLUDED.value,
+                      updated_at = now()
+                    """,
+                    {"key": key, "value": Jsonb(value)},
+                )
+            connection.commit()
 
     def _connect(self) -> Any:
         return self.connection_factory(self.database_url)

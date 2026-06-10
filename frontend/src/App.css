@@ -42,6 +42,7 @@ button {
 .icon-button,
 .primary-button,
 .monitor-toggle,
+.feishu-toggle,
 .manual-actions button {
   display: inline-flex;
   align-items: center;
@@ -74,7 +75,8 @@ button {
   color: #263330;
 }
 
-.monitor-toggle strong {
+.monitor-toggle strong,
+.feishu-toggle strong {
   border-radius: 999px;
   background: #edf0ef;
   padding: 3px 7px;
@@ -102,8 +104,30 @@ button {
   color: #8a6412;
 }
 
+.feishu-toggle {
+  border: 1px solid #d7dddb;
+  background: #ffffff;
+  color: #263330;
+}
+
+.feishu-toggle.active {
+  border-color: #2c6f50;
+  background: #f0fbf5;
+}
+
+.feishu-toggle.active strong {
+  background: #2c6f50;
+  color: #ffffff;
+}
+
+.feishu-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 .icon-button:active,
 .primary-button:active,
+.feishu-toggle:active,
 .manual-actions button:active {
   transform: translateY(1px) scale(0.99);
 }

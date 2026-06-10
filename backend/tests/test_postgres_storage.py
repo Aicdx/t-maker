@@ -14,6 +14,7 @@ def test_schema_sql_creates_market_and_signal_tables() -> None:
     assert "CREATE TABLE IF NOT EXISTS stock_quotes" in SCHEMA_SQL
     assert "CREATE TABLE IF NOT EXISTS t_signal_points" in SCHEMA_SQL
     assert "CREATE TABLE IF NOT EXISTS t_trade_confirmations" in SCHEMA_SQL
+    assert "CREATE TABLE IF NOT EXISTS app_settings" in SCHEMA_SQL
     assert "PRIMARY KEY (symbol, timestamp)" in SCHEMA_SQL
     assert "PRIMARY KEY (symbol, trade_date)" in SCHEMA_SQL
     assert "PRIMARY KEY (symbol, timestamp, action, strict_mode)" in SCHEMA_SQL
@@ -228,6 +229,20 @@ def test_repository_deletes_trade_confirmation() -> None:
 
     assert "DELETE FROM t_trade_confirmations" in connection.execute_calls[0]["sql"]
     assert connection.execute_calls[0]["params"] == {"id": "confirm-1"}
+
+
+def test_repository_saves_and_reads_bool_setting() -> None:
+    connection = FakeConnection(rows=[[], [{"value": False}], []])
+    repo = PostgresRepository("postgresql://example", connection_factory=lambda _: connection)
+
+    assert repo.get_bool_setting("feishu_notifications_enabled", default=True) is True
+    repo.set_bool_setting("feishu_notifications_enabled", False)
+    assert repo.get_bool_setting("feishu_notifications_enabled", default=True) is False
+
+    upsert_call = connection.execute_calls[1]
+    assert "INSERT INTO app_settings" in upsert_call["sql"]
+    assert upsert_call["params"]["key"] == "feishu_notifications_enabled"
+    assert isinstance(upsert_call["params"]["value"], Jsonb)
 
 
 class FakeConnection:

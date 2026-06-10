@@ -144,6 +144,10 @@ type TradingDayPayload = {
   summary?: AppReplaySummary
 }
 
+type NotificationSettings = {
+  feishu_notifications_enabled: boolean
+}
+
 type LlmReview = {
   action: 'buy' | 'sell' | 'hold'
   confidence: number
@@ -260,6 +264,22 @@ async function deleteTradeConfirmation(id: string) {
   if (!response.ok) throw new Error(await apiErrorMessage(response))
 }
 
+async function fetchNotificationSettings(signal?: AbortSignal) {
+  const response = await fetch(`${API_BASE}/api/settings/notifications`, { signal })
+  if (!response.ok) throw new Error(await apiErrorMessage(response))
+  return (await response.json()) as NotificationSettings
+}
+
+async function updateNotificationSettings(enabled: boolean) {
+  const response = await fetch(`${API_BASE}/api/settings/notifications`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ feishu_notifications_enabled: enabled }),
+  })
+  if (!response.ok) throw new Error(await apiErrorMessage(response))
+  return (await response.json()) as NotificationSettings
+}
+
 function App() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
   const [loading, setLoading] = useState(true)
@@ -291,6 +311,8 @@ function App() {
   const [tradeStatsError, setTradeStatsError] = useState('')
   const [tradeSavingAction, setTradeSavingAction] = useState<TradeConfirmationAction | null>(null)
   const [deletingTradeId, setDeletingTradeId] = useState<string | null>(null)
+  const [feishuNotificationsEnabled, setFeishuNotificationsEnabled] = useState(true)
+  const [feishuSettingSaving, setFeishuSettingSaving] = useState(false)
   const lastLoadedDaysSymbolRef = useRef<string | null>(null)
   const isReplaying = replayReviewLoading || dayLoading
   const currentMonitorStatus = monitorStatus(monitorEnabled, monitorNow)
@@ -346,6 +368,20 @@ function App() {
       setTradeStatsError(err instanceof Error ? err.message : '确认记录删除失败')
     } finally {
       setDeletingTradeId(null)
+    }
+  }
+
+  async function toggleFeishuNotifications() {
+    const nextEnabled = !feishuNotificationsEnabled
+    try {
+      setFeishuSettingSaving(true)
+      setError('')
+      const settings = await updateNotificationSettings(nextEnabled)
+      setFeishuNotificationsEnabled(settings.feishu_notifications_enabled)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '飞书通知设置保存失败')
+    } finally {
+      setFeishuSettingSaving(false)
     }
   }
 
@@ -467,6 +503,21 @@ function App() {
     void loadTradeStats(undefined, controller.signal)
     return () => controller.abort()
   }, [loadTradeStats])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    fetchNotificationSettings(controller.signal)
+      .then((settings) => {
+        if (!controller.signal.aborted) {
+          setFeishuNotificationsEnabled(settings.feishu_notifications_enabled)
+        }
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        setError(err instanceof Error ? err.message : '飞书通知设置加载失败')
+      })
+    return () => controller.abort()
+  }, [])
 
   useEffect(() => {
     if (!monitorEnabled) return
@@ -731,6 +782,16 @@ function App() {
             <Pulse size={18} />
             <span>盯盘</span>
             <strong>{monitorStatusLabel(currentMonitorStatus)}</strong>
+          </button>
+          <button
+            type="button"
+            className={feishuNotificationsEnabled ? 'feishu-toggle active' : 'feishu-toggle'}
+            aria-pressed={feishuNotificationsEnabled}
+            disabled={feishuSettingSaving}
+            onClick={() => void toggleFeishuNotifications()}
+          >
+            <span>飞书</span>
+            <strong>{feishuSettingSaving ? '保存中' : feishuNotificationsEnabled ? '开' : '关'}</strong>
           </button>
           <button
             type="button"

@@ -152,6 +152,26 @@ async def test_tick_sends_one_notification_for_eligible_signal() -> None:
     assert runner.state.last_error is None
 
 
+@pytest.mark.asyncio
+async def test_tick_skips_feishu_when_notifications_are_disabled() -> None:
+    analyzer = FakeAnalyzer()
+    notifier = FakeNotifier()
+    runner = MonitorRunner(
+        snapshot_service=FakeSnapshotService([_signal()]),
+        analyzer=analyzer,
+        notifier=notifier,
+        policy=MonitorPolicy(min_ai_confidence=0.6),
+        notifications_enabled=lambda: False,
+    )
+
+    await runner.tick(now=datetime(2026, 6, 9, 10, 24), force=True)
+
+    assert analyzer.calls == []
+    assert notifier.messages == []
+    assert runner.state.notification_count == 0
+    assert runner.state.last_error is None
+
+
 def test_monitor_runner_defaults_to_five_minute_dedup_window() -> None:
     runner = MonitorRunner(
         snapshot_service=FakeSnapshotService([]),
