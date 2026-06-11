@@ -1027,7 +1027,6 @@ def test_snapshot_returns_pending_candidate_without_waiting_for_ai_review() -> N
 
 def test_snapshot_hydrates_saved_realtime_points_after_backend_restart() -> None:
     repository = FakeRepository()
-    trade_date = date(2026, 6, 5)
     repository.save_replay_points(
         [
             ReplayPoint(
@@ -1423,7 +1422,7 @@ def test_snapshot_review_context_uses_realtime_candidate_history_without_hold_si
 
     assert first.status_code == 200
     assert second.status_code == 200
-    assert len(review_client.calls) == 1
+    assert _eventually(lambda: len(review_client.calls) == 1)
     assert all(item["kind"] != "hold" for item in review_client.calls[0]["recent_signals"])
     assert review_client.calls[0]["recent_signals"][-1]["timestamp"] == review_client.calls[0]["timestamp"]
 
