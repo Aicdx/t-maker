@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  ChartBar,
   ChartLineUp,
   ClockCounterClockwise,
   Database,
   CalendarBlank,
   CaretLeft,
   CaretRight,
+  ListChecks,
   Pulse,
+  Target,
   WarningCircle,
+  Wallet,
 } from '@phosphor-icons/react'
 import { DayPicker } from 'react-day-picker'
 import { zhCN } from 'react-day-picker/locale'
@@ -25,12 +29,15 @@ import {
 } from './charting'
 import { FinancialChart } from './FinancialChart'
 import { isAshareTradingTime, monitorStatus, type MonitorStatus } from './marketHours'
+import { fetchMonitorStatus, startMonitor, stopMonitor } from './monitorApi'
 import {
   chartTradeDateLabel,
   dayMarketPayloadToReplay,
+  replayPointKey,
   replayPointReviewLabel,
   replaySourceLabel,
   replaySummaryFromPoints,
+  selectedReplayPointForKey,
   shiftCalendarDate,
   type ReplayPoint,
   type ReplayResult,
@@ -41,6 +48,7 @@ import {
   formatTradeMoney,
   tradeConfirmationActionLabel,
   type TradeConfirmationAction,
+  type TradeConfirmationSummaryReport,
   type TradeConfirmationStats,
 } from './tradeStats'
 
@@ -146,6 +154,7 @@ type TradingDayPayload = {
 
 type NotificationSettings = {
   feishu_notifications_enabled: boolean
+  review_day_feishu_enabled: boolean
 }
 
 type LlmReview = {
@@ -196,6 +205,9 @@ type Snapshot = {
 }
 
 type ChartMode = 'realtime' | 'one_minute' | 'five_minute'
+type DecisionTab = 'decision' | 'position' | 'stats' | 'summary'
+type TradeSummaryRange = 'today' | 'five_day' | 'twenty_day'
+type TradeSummaryScope = 'current' | 'all'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://127.0.0.1:8000'
 
@@ -241,11 +253,34 @@ async function fetchTradingDay(symbol: string, date: string) {
   return (await response.json()) as TradingDayPayload
 }
 
-async function fetchTradeConfirmationStats(date?: string, signal?: AbortSignal) {
-  const query = date ? `?date=${encodeURIComponent(date)}` : ''
+async function fetchTradeConfirmationStats(date?: string, symbol?: string, signal?: AbortSignal) {
+  const params = new URLSearchParams()
+  if (date) params.set('date', date)
+  if (symbol) params.set('symbol', symbol)
+  const query = params.size ? `?${params.toString()}` : ''
   const response = await fetch(`${API_BASE}/api/trade-confirmations/stats${query}`, { signal })
   if (!response.ok) throw new Error(await apiErrorMessage(response))
   return (await response.json()) as TradeConfirmationStats
+}
+
+async function fetchTradeConfirmationSummary({
+  startDate,
+  endDate,
+  symbol,
+  signal,
+}: {
+  startDate: string
+  endDate: string
+  symbol?: string
+  signal?: AbortSignal
+}) {
+  const params = new URLSearchParams()
+  params.set('start_date', startDate)
+  params.set('end_date', endDate)
+  if (symbol) params.set('symbol', symbol)
+  const response = await fetch(`${API_BASE}/api/trade-confirmations/summary?${params.toString()}`, { signal })
+  if (!response.ok) throw new Error(await apiErrorMessage(response))
+  return (await response.json()) as TradeConfirmationSummaryReport
 }
 
 async function createTradeConfirmation(point: ReplayPoint, action: TradeConfirmationAction, source: string) {
@@ -270,11 +305,11 @@ async function fetchNotificationSettings(signal?: AbortSignal) {
   return (await response.json()) as NotificationSettings
 }
 
-async function updateNotificationSettings(enabled: boolean) {
+async function updateNotificationSettings(settings: NotificationSettings) {
   const response = await fetch(`${API_BASE}/api/settings/notifications`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ feishu_notifications_enabled: enabled }),
+    body: JSON.stringify(settings),
   })
   if (!response.ok) throw new Error(await apiErrorMessage(response))
   return (await response.json()) as NotificationSettings
@@ -296,6 +331,7 @@ function App() {
   const [dayLoading, setDayLoading] = useState(false)
   const [replayReviewLoading, setReplayReviewLoading] = useState(false)
   const [selectedReplayKey, setSelectedReplayKey] = useState<string | null>(null)
+  const [decisionTab, setDecisionTab] = useState<DecisionTab>('decision')
   const [monitorEnabled, setMonitorEnabled] = useState(false)
   const [monitorNow, setMonitorNow] = useState(() => new Date())
   const [monitorLastPulledAt, setMonitorLastPulledAt] = useState<string | null>(null)
@@ -309,10 +345,17 @@ function App() {
   const [tradeStats, setTradeStats] = useState<TradeConfirmationStats | null>(null)
   const [tradeStatsLoading, setTradeStatsLoading] = useState(false)
   const [tradeStatsError, setTradeStatsError] = useState('')
+  const [tradeSummary, setTradeSummary] = useState<TradeConfirmationSummaryReport | null>(null)
+  const [tradeSummaryLoading, setTradeSummaryLoading] = useState(false)
+  const [tradeSummaryError, setTradeSummaryError] = useState('')
+  const [tradeSummaryRange, setTradeSummaryRange] = useState<TradeSummaryRange>('today')
+  const [tradeSummaryScope, setTradeSummaryScope] = useState<TradeSummaryScope>('current')
   const [tradeSavingAction, setTradeSavingAction] = useState<TradeConfirmationAction | null>(null)
   const [deletingTradeId, setDeletingTradeId] = useState<string | null>(null)
   const [feishuNotificationsEnabled, setFeishuNotificationsEnabled] = useState(true)
+  const [reviewDayFeishuEnabled, setReviewDayFeishuEnabled] = useState(false)
   const [feishuSettingSaving, setFeishuSettingSaving] = useState(false)
+  const [monitorSettingSaving, setMonitorSettingSaving] = useState(false)
   const lastLoadedDaysSymbolRef = useRef<string | null>(null)
   const isReplaying = replayReviewLoading || dayLoading
   const currentMonitorStatus = monitorStatus(monitorEnabled, monitorNow)
@@ -326,11 +369,11 @@ function App() {
     )
   }, [])
 
-  const loadTradeStats = useCallback(async (date?: string, signal?: AbortSignal) => {
+  const loadTradeStats = useCallback(async (date?: string, symbol?: string, signal?: AbortSignal) => {
     try {
       setTradeStatsLoading(true)
       setTradeStatsError('')
-      const stats = await fetchTradeConfirmationStats(date, signal)
+      const stats = await fetchTradeConfirmationStats(date, symbol, signal)
       if (signal?.aborted) return
       setTradeStats(stats)
     } catch (err) {
@@ -341,6 +384,42 @@ function App() {
     }
   }, [])
 
+  const loadTradeSummary = useCallback(
+    async ({
+      range,
+      scope,
+      symbol,
+      endDate,
+      signal,
+    }: {
+      range: TradeSummaryRange
+      scope: TradeSummaryScope
+      symbol: string
+      endDate: string
+      signal?: AbortSignal
+    }) => {
+      try {
+        setTradeSummaryLoading(true)
+        setTradeSummaryError('')
+        const startDate = summaryStartDate(endDate, range)
+        const summary = await fetchTradeConfirmationSummary({
+          startDate,
+          endDate,
+          symbol: scope === 'current' ? symbol : undefined,
+          signal,
+        })
+        if (signal?.aborted) return
+        setTradeSummary(summary)
+      } catch (err) {
+        if (signal?.aborted) return
+        setTradeSummaryError(err instanceof Error ? err.message : '做T汇总加载失败')
+      } finally {
+        if (!signal?.aborted) setTradeSummaryLoading(false)
+      }
+    },
+    [],
+  )
+
   async function confirmSelectedTrade(action: TradeConfirmationAction) {
     if (!selectedReplayPoint) {
       setTradeStatsError('请先选择一个 AI 低吸或高抛点位')
@@ -350,7 +429,13 @@ function App() {
       setTradeSavingAction(action)
       setTradeStatsError('')
       await createTradeConfirmation(selectedReplayPoint, action, monitorEnabled ? 'monitor' : 'replay')
-      await loadTradeStats(selectedReplayPoint.timestamp.slice(0, 10))
+      await loadTradeStats(selectedReplayPoint.timestamp.slice(0, 10), selectedReplayPoint.symbol)
+      await loadTradeSummary({
+        range: tradeSummaryRange,
+        scope: tradeSummaryScope,
+        symbol: selectedSymbol,
+        endDate: selectedReplayPoint.timestamp.slice(0, 10),
+      })
     } catch (err) {
       setTradeStatsError(err instanceof Error ? err.message : '确认点位保存失败')
     } finally {
@@ -363,7 +448,13 @@ function App() {
       setDeletingTradeId(id)
       setTradeStatsError('')
       await deleteTradeConfirmation(id)
-      await loadTradeStats(tradeStats?.date)
+      await loadTradeStats(tradeStats?.date, selectedSymbol)
+      await loadTradeSummary({
+        range: tradeSummaryRange,
+        scope: tradeSummaryScope,
+        symbol: selectedSymbol,
+        endDate: tradeStats?.date || localDateToIsoDate(new Date()),
+      })
     } catch (err) {
       setTradeStatsError(err instanceof Error ? err.message : '确认记录删除失败')
     } finally {
@@ -372,16 +463,55 @@ function App() {
   }
 
   async function toggleFeishuNotifications() {
-    const nextEnabled = !feishuNotificationsEnabled
+    const nextSettings = {
+      feishu_notifications_enabled: !feishuNotificationsEnabled,
+      review_day_feishu_enabled: reviewDayFeishuEnabled,
+    }
     try {
       setFeishuSettingSaving(true)
       setError('')
-      const settings = await updateNotificationSettings(nextEnabled)
+      const settings = await updateNotificationSettings(nextSettings)
       setFeishuNotificationsEnabled(settings.feishu_notifications_enabled)
+      setReviewDayFeishuEnabled(settings.review_day_feishu_enabled)
     } catch (err) {
       setError(err instanceof Error ? err.message : '飞书通知设置保存失败')
     } finally {
       setFeishuSettingSaving(false)
+    }
+  }
+
+  async function toggleReviewDayFeishu() {
+    const nextSettings = {
+      feishu_notifications_enabled: feishuNotificationsEnabled,
+      review_day_feishu_enabled: !reviewDayFeishuEnabled,
+    }
+    try {
+      setFeishuSettingSaving(true)
+      setError('')
+      const settings = await updateNotificationSettings(nextSettings)
+      setFeishuNotificationsEnabled(settings.feishu_notifications_enabled)
+      setReviewDayFeishuEnabled(settings.review_day_feishu_enabled)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '飞书通知设置保存失败')
+    } finally {
+      setFeishuSettingSaving(false)
+    }
+  }
+
+  async function toggleMonitor() {
+    try {
+      setMonitorSettingSaving(true)
+      setError('')
+      const state = monitorEnabled ? await stopMonitor(API_BASE) : await startMonitor(API_BASE)
+      setMonitorEnabled(state.running)
+      setChartMode('realtime')
+      setHoveredPoint(null)
+      if (state.last_success_at) setMonitorLastPulledAt(state.last_success_at)
+      if (state.last_error) setError(`后端盯盘提示：${state.last_error}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '盯盘状态切换失败')
+    } finally {
+      setMonitorSettingSaving(false)
     }
   }
 
@@ -500,21 +630,32 @@ function App() {
 
   useEffect(() => {
     const controller = new AbortController()
-    void loadTradeStats(undefined, controller.signal)
-    return () => controller.abort()
-  }, [loadTradeStats])
-
-  useEffect(() => {
-    const controller = new AbortController()
     fetchNotificationSettings(controller.signal)
       .then((settings) => {
         if (!controller.signal.aborted) {
           setFeishuNotificationsEnabled(settings.feishu_notifications_enabled)
+          setReviewDayFeishuEnabled(settings.review_day_feishu_enabled)
         }
       })
       .catch((err: unknown) => {
         if (err instanceof DOMException && err.name === 'AbortError') return
         setError(err instanceof Error ? err.message : '飞书通知设置加载失败')
+      })
+    return () => controller.abort()
+  }, [])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    fetchMonitorStatus(API_BASE, controller.signal)
+      .then((state) => {
+        if (controller.signal.aborted) return
+        setMonitorEnabled(state.running)
+        if (state.last_success_at) setMonitorLastPulledAt(state.last_success_at)
+        if (state.last_error) setError(`后端盯盘提示：${state.last_error}`)
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        setError(err instanceof Error ? err.message : '盯盘状态加载失败')
       })
     return () => controller.abort()
   }, [])
@@ -683,6 +824,30 @@ function App() {
     selectedTradeDate,
     latestRealtimeTimestamp,
   })
+
+  useEffect(() => {
+    const controller = new AbortController()
+    queueMicrotask(() => {
+      void loadTradeStats(visibleTradeDate || undefined, selectedSymbol, controller.signal)
+    })
+    return () => controller.abort()
+  }, [loadTradeStats, selectedSymbol, visibleTradeDate])
+
+  useEffect(() => {
+    if (!visibleTradeDate) return
+    const controller = new AbortController()
+    queueMicrotask(() => {
+      void loadTradeSummary({
+        range: tradeSummaryRange,
+        scope: tradeSummaryScope,
+        symbol: selectedSymbol,
+        endDate: visibleTradeDate,
+        signal: controller.signal,
+      })
+    })
+    return () => controller.abort()
+  }, [loadTradeSummary, selectedSymbol, tradeSummaryRange, tradeSummaryScope, visibleTradeDate])
+
   const selectedReplayPoints = useMemo(
     () =>
       (playbackStatus === 'idle' ? (replay?.points ?? []) : playbackPoints).filter(
@@ -692,10 +857,7 @@ function App() {
   )
   const visibleSignalPoints = monitorEnabled && playbackStatus === 'idle' ? monitorPoints : selectedReplayPoints
   const selectedReplayPoint = useMemo(
-    () =>
-      visibleSignalPoints.find((point) => replayPointKey(point) === selectedReplayKey) ??
-      visibleSignalPoints.at(-1) ??
-      null,
+    () => selectedReplayPointForKey(visibleSignalPoints, selectedReplayKey),
     [selectedReplayKey, visibleSignalPoints],
   )
   const chartMarkers = useMemo(
@@ -737,7 +899,6 @@ function App() {
                   }
                 : current,
             )
-            setSelectedReplayKey(replayPointKey(reviewedPoint))
             setPlaybackQueue((current) => current.slice(1))
           })
           .catch((err: unknown) => {
@@ -766,33 +927,42 @@ function App() {
       <header className="topbar">
         <div>
           <p className="eyebrow">A 股做 T 助手</p>
-          <h1>1 分钟驱动，5 分钟确认</h1>
         </div>
         <div className="topbar-actions">
           <button
             type="button"
             className={`monitor-toggle ${currentMonitorStatus}`}
             aria-pressed={monitorEnabled}
-            onClick={() => {
-              setMonitorEnabled((current) => !current)
-              setChartMode('realtime')
-              setHoveredPoint(null)
-            }}
+            disabled={monitorSettingSaving}
+            onClick={() => void toggleMonitor()}
           >
             <Pulse size={18} />
             <span>盯盘</span>
-            <strong>{monitorStatusLabel(currentMonitorStatus)}</strong>
+            <strong>{monitorSettingSaving ? '切换中' : monitorStatusLabel(currentMonitorStatus)}</strong>
           </button>
-          <button
-            type="button"
-            className={feishuNotificationsEnabled ? 'feishu-toggle active' : 'feishu-toggle'}
-            aria-pressed={feishuNotificationsEnabled}
-            disabled={feishuSettingSaving}
-            onClick={() => void toggleFeishuNotifications()}
-          >
-            <span>飞书</span>
-            <strong>{feishuSettingSaving ? '保存中' : feishuNotificationsEnabled ? '开' : '关'}</strong>
-          </button>
+          {monitorEnabled ? (
+            <button
+              type="button"
+              className={feishuNotificationsEnabled ? 'feishu-toggle active' : 'feishu-toggle'}
+              aria-pressed={feishuNotificationsEnabled}
+              disabled={feishuSettingSaving}
+              onClick={() => void toggleFeishuNotifications()}
+            >
+              <span>飞书</span>
+              <strong>{feishuSettingSaving ? '保存中' : feishuNotificationsEnabled ? '开' : '关'}</strong>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={reviewDayFeishuEnabled ? 'feishu-toggle active' : 'feishu-toggle'}
+              aria-pressed={reviewDayFeishuEnabled}
+              disabled={feishuSettingSaving}
+              onClick={() => void toggleReviewDayFeishu()}
+            >
+              <span>复核飞书</span>
+              <strong>{feishuSettingSaving ? '保存中' : reviewDayFeishuEnabled ? '开' : '关'}</strong>
+            </button>
+          )}
           <button
             type="button"
             className="icon-button"
@@ -845,15 +1015,6 @@ function App() {
                 </button>
               ))}
             </div>
-            <div className="health-card">
-              <span>行情源</span>
-              <strong>{providerLabel(snapshot.provider_health.provider)}</strong>
-              <small>
-                更新 {formatTime(snapshot.provider_health.last_success_at)}，
-                延迟 {snapshot.provider_health.latency_ms ?? 0}ms
-              </small>
-              <ProviderNote health={snapshot.provider_health} />
-            </div>
           </aside>
 
           <section className="chart-panel panel">
@@ -901,21 +1062,23 @@ function App() {
               selectedDate={selectedReplayDate}
               points={visibleSignalPoints}
               markers={chartMarkers}
-              selectedKey={selectedReplayPoint ? replayPointKey(selectedReplayPoint) : null}
+              selectedKey={selectedReplayKey}
               onSelectDate={(date) => {
                 const day = recentReplay?.days.find((item) => item.date === date)
                 setHoveredPoint(null)
                 setSelectedReplayDate(day?.date ?? null)
                 setReplay(replayResultForDay(day))
-                const nextReplayPoint = day?.points.find((point) => point.symbol === selectedSymbol)
-                setSelectedReplayKey(nextReplayPoint ? replayPointKey(nextReplayPoint) : null)
+                setSelectedReplayKey(null)
                 setPlaybackStatus('idle')
                 setPlaybackCandles(null)
                 setPlaybackDate(null)
                 setPlaybackPoints([])
                 setPlaybackQueue([])
               }}
-              onSelect={(point) => setSelectedReplayKey(replayPointKey(point))}
+              onSelect={(point) => {
+                setSelectedReplayKey(replayPointKey(point))
+                setDecisionTab('decision')
+              }}
             />
             <IndicatorStrip point={hoveredPoint ?? last(chartData)} mode={chartMode} />
             <div className="metric-row">
@@ -928,35 +1091,67 @@ function App() {
           </section>
 
           <aside className="decision-panel panel">
-            <PanelTitle icon={<ClockCounterClockwise size={18} />} title="决策区" />
-            <PositionCard position={selectedPosition} />
-            <ReplayPointCard point={selectedReplayPoint} />
-            <SignalCard signal={selectedSignal} />
-            <div className="manual-actions">
-              <button
-                type="button"
-                disabled={!selectedReplayPoint || tradeSavingAction !== null}
-                onClick={() => void confirmSelectedTrade('buy')}
-              >
-                {tradeSavingAction === 'buy' ? '保存中' : '已低吸'}
-              </button>
-              <button
-                type="button"
-                disabled={!selectedReplayPoint || tradeSavingAction !== null}
-                onClick={() => void confirmSelectedTrade('sell')}
-              >
-                {tradeSavingAction === 'sell' ? '保存中' : '已高抛'}
-              </button>
-              <button type="button">忽略</button>
+            <div className="decision-panel-head">
+              <PanelTitle icon={<ClockCounterClockwise size={18} />} title="决策区" />
+              <DecisionPanelTabs value={decisionTab} onChange={setDecisionTab} />
             </div>
-            <TradeStatsPanel
-              stats={tradeStats}
-              loading={tradeStatsLoading}
-              error={tradeStatsError}
-              deletingId={deletingTradeId}
-              onDelete={(id) => void removeTradeConfirmation(id)}
-            />
-            <p className="risk-copy">仅作盘中观察与决策辅助，不自动下单，所有操作需要人工确认。</p>
+            <div className="decision-tab-body">
+              {decisionTab === 'decision' && (
+                <section className="decision-tab-panel">
+                  <ReplayPointCard point={selectedReplayPoint} />
+                  <div className="manual-actions">
+                    <button
+                      type="button"
+                      disabled={!selectedReplayPoint || tradeSavingAction !== null}
+                      onClick={() => void confirmSelectedTrade('buy')}
+                    >
+                      {tradeSavingAction === 'buy' ? '保存中' : '已低吸'}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!selectedReplayPoint || tradeSavingAction !== null}
+                      onClick={() => void confirmSelectedTrade('sell')}
+                    >
+                      {tradeSavingAction === 'sell' ? '保存中' : '已高抛'}
+                    </button>
+                    <button type="button" disabled={!selectedReplayPoint} onClick={() => setSelectedReplayKey(null)}>
+                      忽略
+                    </button>
+                  </div>
+                  <p className="risk-copy">仅作盘中观察与决策辅助，不自动下单，所有操作需要人工确认。</p>
+                </section>
+              )}
+              {decisionTab === 'position' && (
+                <section className="decision-tab-panel">
+                  <PositionCard position={selectedPosition} />
+                  <SignalCard signal={selectedSignal} />
+                </section>
+              )}
+              {decisionTab === 'stats' && (
+                <section className="decision-tab-panel">
+                  <TradeStatsPanel
+                    stats={tradeStats}
+                    loading={tradeStatsLoading}
+                    error={tradeStatsError}
+                    deletingId={deletingTradeId}
+                    onDelete={(id) => void removeTradeConfirmation(id)}
+                  />
+                </section>
+              )}
+              {decisionTab === 'summary' && (
+                <section className="decision-tab-panel">
+                  <TradeSummaryPanel
+                    report={tradeSummary}
+                    loading={tradeSummaryLoading}
+                    error={tradeSummaryError}
+                    range={tradeSummaryRange}
+                    scope={tradeSummaryScope}
+                    onRangeChange={setTradeSummaryRange}
+                    onScopeChange={setTradeSummaryScope}
+                  />
+                </section>
+              )}
+            </div>
           </aside>
         </section>
       ) : (
@@ -1206,6 +1401,33 @@ function PanelTitle({ icon, title }: { icon: React.ReactNode; title: string }) {
   )
 }
 
+function DecisionPanelTabs({ value, onChange }: { value: DecisionTab; onChange: (value: DecisionTab) => void }) {
+  const options: { value: DecisionTab; label: string; icon: React.ReactNode }[] = [
+    { value: 'decision', label: '决策', icon: <Target size={15} /> },
+    { value: 'position', label: '持仓', icon: <Wallet size={15} /> },
+    { value: 'stats', label: '统计', icon: <ChartBar size={15} /> },
+    { value: 'summary', label: '汇总', icon: <ListChecks size={15} /> },
+  ]
+
+  return (
+    <div className="decision-tabs" role="tablist" aria-label="决策区功能切换">
+      {options.map((option) => (
+        <button
+          type="button"
+          key={option.value}
+          className={value === option.value ? 'active' : ''}
+          onClick={() => onChange(option.value)}
+          role="tab"
+          aria-selected={value === option.value}
+        >
+          {option.icon}
+          <span>{option.label}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function StatusPill({ signal }: { signal?: Signal }) {
   const kind = signal?.kind ?? 'hold'
   const labelMap = {
@@ -1401,6 +1623,137 @@ function TradeStatsPanel({
   )
 }
 
+function TradeSummaryPanel({
+  report,
+  loading,
+  error,
+  range,
+  scope,
+  onRangeChange,
+  onScopeChange,
+}: {
+  report: TradeConfirmationSummaryReport | null
+  loading: boolean
+  error: string
+  range: TradeSummaryRange
+  scope: TradeSummaryScope
+  onRangeChange: (value: TradeSummaryRange) => void
+  onScopeChange: (value: TradeSummaryScope) => void
+}) {
+  return (
+    <section className="trade-summary">
+      <div className="trade-stats-head">
+        <div>
+          <span>做T汇总</span>
+          <strong>
+            {report ? `${formatDateShort(report.start_date)}-${formatDateShort(report.end_date)}` : '--'}
+          </strong>
+        </div>
+        {loading && <small>刷新中</small>}
+      </div>
+      <div className="summary-controls">
+        <SegmentedControl
+          label="汇总周期"
+          value={range}
+          options={[
+            { value: 'today', label: '今天' },
+            { value: 'five_day', label: '近5日' },
+            { value: 'twenty_day', label: '近20日' },
+          ]}
+          onChange={onRangeChange}
+        />
+        <SegmentedControl
+          label="汇总范围"
+          value={scope}
+          options={[
+            { value: 'current', label: '当前股' },
+            { value: 'all', label: '全部' },
+          ]}
+          onChange={onScopeChange}
+        />
+      </div>
+      {error && <p className="trade-stats-error">{error}</p>}
+      <div className="trade-stats-metrics">
+        <Metric label="总收益" value={formatTradeMoney(report?.summary.total_pnl ?? 0)} />
+        <Metric label="已配对" value={String(report?.summary.paired_count ?? 0)} />
+        <Metric label="待配对" value={String(report?.summary.unpaired_count ?? 0)} />
+        <Metric label="记录" value={String(report?.summary.record_count ?? 0)} />
+      </div>
+      <SummaryRows
+        title="按时间"
+        rows={(report?.by_date ?? []).map((row) => ({
+          key: row.date,
+          label: row.date,
+          summary: row.summary,
+        }))}
+      />
+      <SummaryRows
+        title="按股票"
+        rows={(report?.by_symbol ?? []).map((row) => ({
+          key: row.symbol,
+          label: row.symbol,
+          summary: row.summary,
+        }))}
+      />
+    </section>
+  )
+}
+
+function SegmentedControl<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string
+  value: T
+  options: { value: T; label: string }[]
+  onChange: (value: T) => void
+}) {
+  return (
+    <div className="summary-control">
+      <span>{label}</span>
+      <div className="summary-segmented" role="tablist" aria-label={label}>
+        {options.map((option) => (
+          <button
+            type="button"
+            key={option.value}
+            className={value === option.value ? 'active' : ''}
+            onClick={() => onChange(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function SummaryRows({
+  title,
+  rows,
+}: {
+  title: string
+  rows: { key: string; label: string; summary: TradeConfirmationStats['summary'] }[]
+}) {
+  return (
+    <div className="summary-rows">
+      <span>{title}</span>
+      {rows.length ? (
+        rows.map((row) => (
+          <div key={row.key} className="summary-row">
+            <strong>{row.label}</strong>
+            <small>{row.summary.paired_count}配 / {row.summary.unpaired_count}待 / {row.summary.record_count}记</small>
+            <em>{formatTradeMoney(row.summary.total_pnl)}</em>
+          </div>
+        ))
+      ) : (
+        <div className="trade-empty">暂无汇总记录</div>
+      )}
+    </div>
+  )
+}
+
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="metric">
@@ -1531,22 +1884,8 @@ function ChartModeTabs({
   )
 }
 
-function ProviderNote({ health }: { health: ProviderHealth }) {
-  if (!health.provider.includes('fallback')) return null
-  return (
-    <small className="fallback-note">
-      真实行情源暂不可用，当前显示离线模拟数据
-      {health.last_error ? `：${health.last_error}` : ''}
-    </small>
-  )
-}
-
 function latestSignalFor(signals: Signal[], symbol: string) {
   return signals.filter((signal) => signal.symbol === symbol).at(-1)
-}
-
-function replayPointKey(point: Pick<ReplayPoint, 'symbol' | 'timestamp' | 'action'>) {
-  return `${point.symbol}-${point.timestamp}-${point.action}`
 }
 
 function replayPointTone(point: ReplayPoint) {
@@ -1737,6 +2076,11 @@ function localDateToIsoDate(value: Date) {
   return `${year}-${month}-${day}`
 }
 
+function summaryStartDate(endDate: string, range: TradeSummaryRange) {
+  if (range === 'today') return endDate
+  return shiftCalendarDate(endDate, range === 'five_day' ? -4 : -19)
+}
+
 function replayResultForDay(day?: RecentReplayDay | null): AppReplayResult | null {
   return day
     ? {
@@ -1747,14 +2091,6 @@ function replayResultForDay(day?: RecentReplayDay | null): AppReplayResult | nul
         summary: day.summary,
       }
     : null
-}
-
-function providerLabel(provider: string) {
-  if (provider === 'tencent_ifzq') return '腾讯真实分时'
-  if (provider === 'tencent_ifzq_fallback') return '腾讯分时回退'
-  if (provider === 'akshare') return 'AKShare 真实行情'
-  if (provider === 'akshare_fallback') return 'AKShare 回退模式'
-  return provider
 }
 
 export default App

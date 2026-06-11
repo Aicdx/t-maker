@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+import asyncio
 from typing import Any
 
 import httpx
 
 from tmaker.domain.models import MarketQuote, Signal, SignalAction
+from tmaker.strategy.replay import ReplayPoint
 
 
 class FeishuConfigError(RuntimeError):
@@ -38,6 +40,9 @@ class FeishuNotifier:
             response = await client.post(self.webhook_url, json=payload)
             response.raise_for_status()
         _raise_for_feishu_error(response)
+
+    def send_text_sync(self, text: str) -> None:
+        asyncio.run(self.send_text(text))
 
 
 def format_feishu_message(
@@ -78,6 +83,29 @@ def format_feishu_message(
     execution_blockers.extend(_analysis_list(codex_analysis, "execution_blockers"))
     lines.extend(_section("执行阻断", execution_blockers))
     lines.extend(["", "提醒：仅供盘中辅助判断，不自动下单。"])
+    return "\n".join(lines)
+
+
+def format_review_day_feishu_message(point: ReplayPoint, quote: MarketQuote | None = None) -> str:
+    action = point.llm_action or point.action
+    name = quote.name if quote else point.symbol
+    lines = [
+        f"【T Maker 复核日通知】{name} {point.symbol}",
+        "",
+        f"信号：{_replay_action_label(point.action)}候选",
+        f"时间：{point.timestamp[11:16]}",
+        f"价格：{point.price:.2f}",
+        f"规则置信度：{point.confidence:.0%}",
+        f"工程 AI：{_replay_action_label(action)}，{_format_confidence(point.llm_confidence)}",
+        "",
+        "工程 AI 结论：",
+        point.llm_summary or point.reason,
+    ]
+    lines.extend(_section("工程 AI 理由", point.llm_reasons))
+    lines.extend(_section("等待确认", point.wait_for))
+    lines.extend(_section("风险", point.risks))
+    lines.extend(_section("执行阻断", point.execution_blockers or []))
+    lines.extend(["", "提醒：历史复核通知，仅供复盘验证，不自动下单。"])
     return "\n".join(lines)
 
 
@@ -154,6 +182,14 @@ def _action_label(action: SignalAction) -> str:
     return "观望"
 
 
+def _replay_action_label(action: str | SignalAction) -> str:
+    if action == "buy":
+        return "低吸"
+    if action == "sell":
+        return "高抛"
+    return "观望"
+
+
 def _judgement_label(value: object) -> str:
     if value == "buy":
         return "二次判断偏低吸"
@@ -166,3 +202,7 @@ def _judgement_label(value: object) -> str:
 
 def _format_number(value: float | None) -> str:
     return f"{value:.2f}" if isinstance(value, float) else "--"
+
+
+def _format_confidence(value: float | None) -> str:
+    return f"{value:.0%}" if isinstance(value, float) else "--"

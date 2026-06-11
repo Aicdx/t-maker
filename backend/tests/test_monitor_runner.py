@@ -72,6 +72,17 @@ class FakeSnapshotService:
         }
 
 
+class SequenceSnapshotService:
+    def __init__(self, signal_batches: list[list[Signal]]) -> None:
+        self.signal_batches = signal_batches
+        self.calls = 0
+
+    def refresh(self) -> dict:
+        index = min(self.calls, len(self.signal_batches) - 1)
+        self.calls += 1
+        return FakeSnapshotService(self.signal_batches[index]).refresh()
+
+
 class AsyncioRunSnapshotService:
     def refresh(self) -> dict:
         async def _inner() -> dict:
@@ -306,3 +317,28 @@ async def test_start_stop_are_idempotent() -> None:
     await runner.stop()
 
     assert runner.state.running is False
+
+
+@pytest.mark.asyncio
+async def test_start_can_silence_existing_signals_without_blocking_new_ones() -> None:
+    old_signal = _signal(datetime(2026, 6, 9, 10, 23))
+    new_signal = _signal(datetime(2026, 6, 9, 10, 24))
+    snapshot = SequenceSnapshotService([[old_signal], [old_signal], [old_signal, new_signal]])
+    notifier = FakeNotifier()
+    runner = MonitorRunner(
+        snapshot_service=snapshot,
+        analyzer=FakeAnalyzer(),
+        notifier=notifier,
+        policy=MonitorPolicy(min_ai_confidence=0.6),
+        interval_seconds=3600,
+    )
+
+    await runner.start(silence_existing=True)
+    await runner.tick(now=datetime(2026, 6, 9, 10, 25), force=True)
+    await runner.tick(now=datetime(2026, 6, 9, 10, 26), force=True)
+    await runner.stop()
+
+    assert snapshot.calls >= 3
+    assert runner.state.notification_count == 1
+    assert len(notifier.messages) == 1
+    assert "时间：10:24" in notifier.messages[0]

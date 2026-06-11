@@ -4,6 +4,7 @@ from datetime import date
 from datetime import datetime
 from enum import StrEnum
 from itertools import groupby
+from typing import Iterable
 
 from pydantic import BaseModel, Field, computed_field
 
@@ -154,6 +155,25 @@ class TradeConfirmationStats(BaseModel):
     unpaired: list[TradeConfirmation]
 
 
+class TradeConfirmationDateSummary(BaseModel):
+    date: date
+    summary: TradeConfirmationSummary
+
+
+class TradeConfirmationSymbolSummary(BaseModel):
+    symbol: str
+    summary: TradeConfirmationSummary
+
+
+class TradeConfirmationSummaryReport(BaseModel):
+    start_date: date
+    end_date: date
+    symbol: str | None = None
+    summary: TradeConfirmationSummary
+    by_date: list[TradeConfirmationDateSummary]
+    by_symbol: list[TradeConfirmationSymbolSummary]
+
+
 def build_trade_confirmation_stats(
     confirmations: list[TradeConfirmation],
     trade_date: date,
@@ -193,6 +213,62 @@ def build_trade_confirmation_stats(
         ),
         pairs=pairs,
         unpaired=sorted(unpaired, key=lambda item: (item.signal_timestamp, item.created_at)),
+    )
+
+
+def build_trade_confirmation_summary(
+    confirmations: list[TradeConfirmation],
+    *,
+    start_date: date,
+    end_date: date,
+    symbol: str | None = None,
+) -> TradeConfirmationSummaryReport:
+    scoped = [
+        item
+        for item in confirmations
+        if start_date <= item.trade_date <= end_date and (symbol is None or item.symbol == symbol)
+    ]
+    dates = sorted({item.trade_date for item in scoped})
+    symbols = sorted({item.symbol for item in scoped})
+
+    by_date = [
+        TradeConfirmationDateSummary(
+            date=trade_date,
+            summary=build_trade_confirmation_stats(scoped, trade_date).summary,
+        )
+        for trade_date in dates
+    ]
+    by_symbol = [
+        TradeConfirmationSymbolSummary(
+            symbol=item_symbol,
+            summary=_aggregate_trade_summaries(
+                build_trade_confirmation_stats(
+                    [item for item in scoped if item.symbol == item_symbol],
+                    trade_date,
+                ).summary
+                for trade_date in dates
+            ),
+        )
+        for item_symbol in symbols
+    ]
+
+    return TradeConfirmationSummaryReport(
+        start_date=start_date,
+        end_date=end_date,
+        symbol=symbol,
+        summary=_aggregate_trade_summaries(row.summary for row in by_date),
+        by_date=by_date,
+        by_symbol=by_symbol,
+    )
+
+
+def _aggregate_trade_summaries(summaries: Iterable[TradeConfirmationSummary]) -> TradeConfirmationSummary:
+    items = list(summaries)
+    return TradeConfirmationSummary(
+        record_count=sum(item.record_count for item in items),
+        paired_count=sum(item.paired_count for item in items),
+        unpaired_count=sum(item.unpaired_count for item in items),
+        total_pnl=round(sum(item.total_pnl for item in items), 2),
     )
 
 

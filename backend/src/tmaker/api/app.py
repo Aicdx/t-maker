@@ -20,6 +20,7 @@ from tmaker.domain.models import (
     ProviderHealth,
     Signal,
     TradeConfirmationCreate,
+    build_trade_confirmation_summary,
     build_trade_confirmation_stats,
 )
 from tmaker.llm.codex_analysis import CodexAnalysisClient, CodexSignalAnalyzer
@@ -32,7 +33,12 @@ from tmaker.market.bars import aggregate_five_minute
 from tmaker.market.tencent_provider import TencentHistoricalMinuteProvider, TencentMarketProvider
 from tmaker.monitor.policy import MonitorPolicy
 from tmaker.monitor.runner import MonitorRunner, SignalAnalyzer, TextNotifier
-from tmaker.notify.feishu import FeishuConfigError, FeishuDeliveryError, FeishuNotifier
+from tmaker.notify.feishu import (
+    FeishuConfigError,
+    FeishuDeliveryError,
+    FeishuNotifier,
+    format_review_day_feishu_message,
+)
 from tmaker.storage.postgres import PostgresRepository
 from tmaker.strategy.market_context import build_equal_weight_sector_candles, build_market_context
 from tmaker.strategy.replay import (
@@ -65,9 +71,11 @@ class AppState(BaseModel):
 
 class NotificationSettings(BaseModel):
     feishu_notifications_enabled: bool = True
+    review_day_feishu_enabled: bool = False
 
 
 _FEISHU_NOTIFICATIONS_ENABLED_KEY = "feishu_notifications_enabled"
+_REVIEW_DAY_FEISHU_ENABLED_KEY = "review_day_feishu_enabled"
 
 
 def create_app(
@@ -137,7 +145,7 @@ def create_app(
     @app.on_event("startup")
     async def start_monitor_when_enabled() -> None:
         if settings.monitor_auto_start:
-            await monitor_runner.start()
+            await monitor_runner.start(silence_existing=True)
 
     @app.on_event("shutdown")
     async def stop_monitor_on_shutdown() -> None:
@@ -149,7 +157,7 @@ def create_app(
 
     @app.post("/api/monitor/start")
     async def monitor_start() -> dict:
-        await monitor_runner.start()
+        await monitor_runner.start(silence_existing=True)
         return monitor_runner.state.model_dump(mode="json")
 
     @app.post("/api/monitor/stop")
@@ -173,7 +181,8 @@ def create_app(
     def get_notification_settings() -> dict:
         repo.init_schema()
         return NotificationSettings(
-            feishu_notifications_enabled=_feishu_notifications_enabled(repo)
+            feishu_notifications_enabled=_feishu_notifications_enabled(repo),
+            review_day_feishu_enabled=_review_day_feishu_enabled(repo),
         ).model_dump(mode="json")
 
     @app.put("/api/settings/notifications")
@@ -182,6 +191,10 @@ def create_app(
         repo.set_bool_setting(
             _FEISHU_NOTIFICATIONS_ENABLED_KEY,
             payload.feishu_notifications_enabled,
+        )
+        repo.set_bool_setting(
+            _REVIEW_DAY_FEISHU_ENABLED_KEY,
+            payload.review_day_feishu_enabled,
         )
         return payload.model_dump(mode="json")
 
@@ -192,11 +205,35 @@ def create_app(
         return saved.model_dump(mode="json")
 
     @app.get("/api/trade-confirmations/stats")
-    def trade_confirmation_stats(date: str | None = None) -> dict:
+    def trade_confirmation_stats(date: str | None = None, symbol: str | None = None) -> dict:
         trade_date = _parse_trade_date(date) if date else _today()
         repo.init_schema()
         confirmations = repo.list_trade_confirmations(trade_date)
+        if symbol:
+            confirmations = [item for item in confirmations if item.symbol == symbol]
         stats = build_trade_confirmation_stats(confirmations, trade_date)
+        return stats.model_dump(mode="json")
+
+    @app.get("/api/trade-confirmations/summary")
+    def trade_confirmation_summary(
+        start_date: str | None = None,
+        end_date: str | None = None,
+        symbol: str | None = None,
+    ) -> dict:
+        report_end_date = _parse_trade_date(end_date) if end_date else _today()
+        report_start_date = (
+            _parse_trade_date(start_date) if start_date else report_end_date - timedelta(days=19)
+        )
+        if report_start_date > report_end_date:
+            raise HTTPException(status_code=400, detail="start_date must be before or equal to end_date")
+        repo.init_schema()
+        confirmations = repo.list_trade_confirmations_range(report_start_date, report_end_date)
+        stats = build_trade_confirmation_summary(
+            confirmations,
+            start_date=report_start_date,
+            end_date=report_end_date,
+            symbol=symbol,
+        )
         return stats.model_dump(mode="json")
 
     @app.delete("/api/trade-confirmations/{confirmation_id}")
@@ -279,6 +316,15 @@ def create_app(
         if point is None:
             raise HTTPException(status_code=404, detail="Replay point not found")
         repo.save_replay_points([point], strict=strict)
+        if _should_send_review_day_feishu(repo, point):
+            try:
+                monitor_runner.notifier.send_text_sync(
+                    format_review_day_feishu_message(point, repo.get_quote(symbol, trade_date))
+                )
+            except FeishuConfigError as exc:
+                raise HTTPException(status_code=503, detail=str(exc)) from exc
+            except (FeishuDeliveryError, httpx.HTTPError) as exc:
+                raise HTTPException(status_code=502, detail=_format_provider_error(exc)) from exc
         return point.model_dump(mode="json")
 
     @app.post("/api/simulate/tick")
@@ -428,6 +474,10 @@ def _refresh_from_provider(
             continue
         current_latest = candles[-1]
         if repo is not None:
+            try:
+                repo.save_minute_bars(candles, source="tencent_ifzq")
+            except Exception as exc:
+                persistence_errors.append(f"{item.symbol} minute cache: {_format_provider_error(exc)}")
             error = _hydrate_realtime_signals_from_repo(
                 repo,
                 state,
@@ -663,6 +713,20 @@ def _today() -> date_type:
 def _feishu_notifications_enabled(repo: PostgresRepository) -> bool:
     repo.init_schema()
     return repo.get_bool_setting(_FEISHU_NOTIFICATIONS_ENABLED_KEY, default=True)
+
+
+def _review_day_feishu_enabled(repo: PostgresRepository) -> bool:
+    repo.init_schema()
+    return repo.get_bool_setting(_REVIEW_DAY_FEISHU_ENABLED_KEY, default=False)
+
+
+def _should_send_review_day_feishu(repo: PostgresRepository, point: ReplayPoint) -> bool:
+    if not _review_day_feishu_enabled(repo):
+        return False
+    action = point.llm_action or point.action
+    if point.llm_status != "ok" or action not in {"buy", "sell"}:
+        return False
+    return point.execution_allowed is not False
 
 
 def _fetch_and_cache_symbol_history(

@@ -415,6 +415,27 @@ class PostgresRepository:
                 )
                 return [_row_to_trade_confirmation(row) for row in cursor.fetchall()]
 
+    def list_trade_confirmations_range(
+        self,
+        start_date: date,
+        end_date: date,
+    ) -> list[TradeConfirmation]:
+        with self._connect() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(
+                    """
+                    SELECT
+                      id::text AS id, symbol, trade_date, signal_timestamp, signal_action,
+                      confirm_action, price, quantity, source, reason, llm_confidence, created_at
+                    FROM t_trade_confirmations
+                    WHERE trade_date >= %(start_date)s
+                      AND trade_date <= %(end_date)s
+                    ORDER BY trade_date, symbol, signal_timestamp, created_at
+                    """,
+                    {"start_date": start_date, "end_date": end_date},
+                )
+                return [_row_to_trade_confirmation(row) for row in cursor.fetchall()]
+
     def delete_trade_confirmation(self, confirmation_id: str) -> bool:
         with self._connect() as connection:
             with connection.cursor(row_factory=dict_row) as cursor:

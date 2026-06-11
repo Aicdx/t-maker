@@ -141,6 +141,11 @@ class FakeMonitorNotifier:
         if self.exc is not None:
             raise self.exc
 
+    def send_text_sync(self, text: str) -> None:
+        self.messages.append(text)
+        if self.exc is not None:
+            raise self.exc
+
 
 class FakeRepository:
     def __init__(self) -> None:
@@ -222,6 +227,17 @@ class FakeRepository:
             confirmation
             for confirmation in self.confirmations.values()
             if confirmation.trade_date == trade_date
+        ]
+
+    def list_trade_confirmations_range(
+        self,
+        start_date: date,
+        end_date: date,
+    ) -> list[TradeConfirmation]:
+        return [
+            confirmation
+            for confirmation in self.confirmations.values()
+            if start_date <= confirmation.trade_date <= end_date
         ]
 
     def delete_trade_confirmation(self, confirmation_id: str) -> bool:
@@ -446,6 +462,25 @@ def test_snapshot_realtime_series_keeps_full_trading_day() -> None:
     assert one_minute[-1]["timestamp"] == "2026-06-05T15:00:00"
 
 
+def test_snapshot_persists_realtime_minute_bars_for_day_review_cache() -> None:
+    repository = FakeRepository()
+    candles = {
+        "000636": _full_trading_day_provider_candles("000636", close=14.2),
+        "600487": _full_trading_day_provider_candles("600487", close=23.4),
+        "300308": _full_trading_day_provider_candles("300308", close=151.6),
+        "300502": _full_trading_day_provider_candles("300502", close=126.8),
+    }
+    client = TestClient(create_app(minute_provider=FakeProvider(candles), repository=repository))
+
+    response = client.get("/api/snapshot")
+
+    assert response.status_code == 200
+    cached = repository.get_minute_bars("300308", date(2026, 6, 5))
+    assert len(cached) == 242
+    assert cached[0].timestamp == datetime(2026, 6, 5, 9, 30)
+    assert cached[-1].timestamp == datetime(2026, 6, 5, 15, 0)
+
+
 def test_snapshot_falls_back_to_demo_data_when_provider_fails() -> None:
     provider = FakeProvider(MarketDataUnavailable("empty"))
     client = TestClient(_test_app(minute_provider=provider))
@@ -552,16 +587,26 @@ def test_notification_settings_api_reads_and_updates_feishu_flag() -> None:
     initial = client.get("/api/settings/notifications")
     updated = client.put(
         "/api/settings/notifications",
-        json={"feishu_notifications_enabled": False},
+        json={"feishu_notifications_enabled": False, "review_day_feishu_enabled": True},
     )
     refreshed = client.get("/api/settings/notifications")
 
     assert initial.status_code == 200
-    assert initial.json() == {"feishu_notifications_enabled": True}
+    assert initial.json() == {
+        "feishu_notifications_enabled": True,
+        "review_day_feishu_enabled": False,
+    }
     assert updated.status_code == 200
-    assert updated.json() == {"feishu_notifications_enabled": False}
-    assert refreshed.json() == {"feishu_notifications_enabled": False}
+    assert updated.json() == {
+        "feishu_notifications_enabled": False,
+        "review_day_feishu_enabled": True,
+    }
+    assert refreshed.json() == {
+        "feishu_notifications_enabled": False,
+        "review_day_feishu_enabled": True,
+    }
     assert repository.bool_settings["feishu_notifications_enabled"] is False
+    assert repository.bool_settings["review_day_feishu_enabled"] is True
 
 
 def test_trade_confirmation_api_saves_selected_ai_point() -> None:
@@ -650,6 +695,77 @@ def test_trade_confirmation_stats_honors_date_query(monkeypatch: pytest.MonkeyPa
 
     assert today_response.json()["summary"]["record_count"] == 0
     assert selected_response.json()["summary"]["record_count"] == 1
+
+
+def test_trade_confirmation_stats_filters_current_symbol() -> None:
+    repository = FakeRepository()
+    client = TestClient(_test_app(repository=repository))
+    for symbol, price in [("300308", 123.4), ("300308", 125.1), ("600487", 28.3)]:
+        client.post(
+            "/api/trade-confirmations",
+            json={
+                "symbol": symbol,
+                "signal_timestamp": "2026-06-10T10:24:00",
+                "signal_action": "buy" if price < 125 else "sell",
+                "confirm_action": "buy" if price < 125 else "sell",
+                "price": price,
+                "source": "monitor",
+                "reason": "AI点位",
+            },
+        )
+
+    response = client.get("/api/trade-confirmations/stats?date=2026-06-10&symbol=300308")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["summary"]["record_count"] == 2
+    assert payload["summary"]["paired_count"] == 1
+    assert [pair["symbol"] for pair in payload["pairs"]] == ["300308"]
+    assert payload["unpaired"] == []
+
+
+def test_trade_confirmation_summary_groups_by_date_and_symbol() -> None:
+    repository = FakeRepository()
+    client = TestClient(_test_app(repository=repository))
+    records = [
+        ("300308", "2026-06-09T10:24:00", "buy", 100.0),
+        ("300308", "2026-06-09T13:12:00", "sell", 101.0),
+        ("600487", "2026-06-10T10:24:00", "buy", 20.0),
+        ("600487", "2026-06-10T14:06:00", "sell", 21.5),
+        ("300308", "2026-06-10T10:30:00", "buy", 102.0),
+    ]
+    for symbol, timestamp, action, price in records:
+        client.post(
+            "/api/trade-confirmations",
+            json={
+                "symbol": symbol,
+                "signal_timestamp": timestamp,
+                "signal_action": action,
+                "confirm_action": action,
+                "price": price,
+                "source": "monitor",
+                "reason": "AI点位",
+            },
+        )
+
+    response = client.get("/api/trade-confirmations/summary?start_date=2026-06-09&end_date=2026-06-10")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["start_date"] == "2026-06-09"
+    assert payload["end_date"] == "2026-06-10"
+    assert payload["summary"]["record_count"] == 5
+    assert payload["summary"]["paired_count"] == 2
+    assert payload["summary"]["unpaired_count"] == 1
+    assert payload["summary"]["total_pnl"] == 250.0
+    assert [(row["date"], row["summary"]["total_pnl"]) for row in payload["by_date"]] == [
+        ("2026-06-09", 100.0),
+        ("2026-06-10", 150.0),
+    ]
+    assert [(row["symbol"], row["summary"]["record_count"]) for row in payload["by_symbol"]] == [
+        ("300308", 3),
+        ("600487", 2),
+    ]
 
 
 def test_trade_confirmation_delete_removes_record_or_returns_404() -> None:
@@ -1709,6 +1825,41 @@ def test_day_replay_review_endpoint_reviews_requested_date_symbol_point() -> Non
     assert all(candle["timestamp"] <= timestamp for candle in review_client.calls[0]["one_minute_candles"])
     assert repository.saved_points[-1].symbol == "300502"
     assert datetime.fromisoformat(repository.saved_points[-1].timestamp).date() == date(2026, 6, 1)
+
+
+def test_day_replay_review_endpoint_sends_feishu_when_review_day_notifications_enabled() -> None:
+    repository = FakeRepository()
+    repository.set_bool_setting("review_day_feishu_enabled", True)
+    repository.save_minute_bars(_buy_candidate_candles_on("300502", date(2026, 6, 1)), source="test")
+    repository.save_minute_bars(_sell_candidate_candles("600487"), source="test")
+    notifier = FakeMonitorNotifier()
+    client = TestClient(
+        create_app(
+            minute_provider=FakeProvider(MarketDataUnavailable("should not call")),
+            review_client=FakeReviewClient(),
+            repository=repository,
+            monitor_notifier=notifier,
+        )
+    )
+    replay_payload = client.post(
+        "/api/day/replay?symbol=300502&date=2026-06-01&strict=true&review=false"
+    ).json()
+
+    response = client.post(
+        "/api/day/replay/review",
+        params={
+            "symbol": "300502",
+            "date": "2026-06-01",
+            "timestamp": replay_payload["points"][0]["timestamp"],
+            "strict": True,
+        },
+    )
+
+    assert response.status_code == 200
+    assert len(notifier.messages) == 1
+    assert "【T Maker 复核日通知】" in notifier.messages[0]
+    assert "300502" in notifier.messages[0]
+    assert "工程 AI：低吸" in notifier.messages[0]
 
 
 def test_recent_replay_endpoint_returns_grouped_days_and_accuracy_summary(monkeypatch, tmp_path) -> None:

@@ -85,6 +85,18 @@ export function replayPointReviewLabel(point: Pick<ReplayPoint, 'llm_status' | '
   return 'AI未复核'
 }
 
+export function replayPointKey(point: Pick<ReplayPoint, 'symbol' | 'timestamp' | 'action'>) {
+  return `${point.symbol}-${point.timestamp}-${point.action}`
+}
+
+export function selectedReplayPointForKey<T extends Pick<ReplayPoint, 'symbol' | 'timestamp' | 'action'>>(
+  points: readonly T[],
+  selectedKey: string | null,
+) {
+  if (!selectedKey) return null
+  return points.find((point) => replayPointKey(point) === selectedKey) ?? null
+}
+
 export function replayActionLabel(action: ReplayPoint['action']) {
   if (action === 'buy') return '低吸'
   if (action === 'sell') return '高抛'

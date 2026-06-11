@@ -5,7 +5,9 @@ import {
   chartTradeDateLabel,
   dayMarketPayloadToReplay,
   replayPointReviewLabel,
+  replayPointKey,
   replaySourceLabel,
+  selectedReplayPointForKey,
   shiftCalendarDate,
 } from '../src/replayState.ts'
 
@@ -118,4 +120,49 @@ test('replayPointReviewLabel does not display pending points as AI hold', () => 
   assert.equal(replayPointReviewLabel({ llm_status: 'pending', llm_action: null }), 'AI复核中')
   assert.equal(replayPointReviewLabel({ llm_status: 'ok', llm_action: 'hold' }), 'AI观望')
   assert.equal(replayPointReviewLabel({ llm_status: 'ok', llm_action: 'sell' }), 'AI高抛')
+})
+
+test('selectedReplayPointForKey only returns a point after an explicit selection', () => {
+  const points = [
+    {
+      symbol: '300308',
+      timestamp: '2026-06-10T10:24:00',
+      action: 'buy',
+      kind: 'candidate_buy',
+      price: 123.45,
+      confidence: 0.72,
+      rule_ids: ['vwap_deviation'],
+      reason: 'AI低吸点位',
+      risks: [],
+      llm_status: 'ok',
+      llm_action: 'buy',
+      llm_confidence: 0.68,
+      llm_summary: '复核通过',
+      llm_reasons: [],
+      wait_for: [],
+      execution_blockers: [],
+    },
+    {
+      symbol: '300308',
+      timestamp: '2026-06-10T13:18:00',
+      action: 'sell',
+      kind: 'candidate_sell',
+      price: 128.1,
+      confidence: 0.7,
+      rule_ids: ['profit_band'],
+      reason: 'AI高抛点位',
+      risks: [],
+      llm_status: 'ok',
+      llm_action: 'sell',
+      llm_confidence: 0.64,
+      llm_summary: '复核通过',
+      llm_reasons: [],
+      wait_for: [],
+      execution_blockers: [],
+    },
+  ] as const
+
+  assert.equal(selectedReplayPointForKey(points, null), null)
+  assert.equal(selectedReplayPointForKey(points, replayPointKey(points[0])), points[0])
+  assert.equal(selectedReplayPointForKey(points, 'missing'), null)
 })

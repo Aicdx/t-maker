@@ -29,6 +29,9 @@ class TextNotifier(Protocol):
     async def send_text(self, text: str) -> None:
         """Send one text notification."""
 
+    def send_text_sync(self, text: str) -> None:
+        """Send one text notification from sync endpoints."""
+
 
 class MonitorRunner:
     def __init__(
@@ -52,11 +55,14 @@ class MonitorRunner:
         self.state = MonitorRuntimeState()
         self._task: asyncio.Task[None] | None = None
         self._notified_keys: dict[str, datetime] = {}
+        self._silenced_keys: set[str] = set()
 
-    async def start(self) -> None:
+    async def start(self, *, silence_existing: bool = False) -> None:
         if self._task and not self._task.done():
             self.state.running = True
             return
+        if silence_existing:
+            await self.silence_current_signals()
         self.state.running = True
         self._task = asyncio.create_task(self._run_loop())
 
@@ -87,6 +93,21 @@ class MonitorRunner:
             await self.tick()
             await asyncio.sleep(self.interval_seconds)
 
+    async def silence_current_signals(self) -> None:
+        try:
+            payload = await asyncio.to_thread(self.snapshot_service.refresh)
+            self._silence_payload(payload)
+            self.state.last_error = None
+        except Exception as exc:
+            self.state.last_error = str(exc).strip() or exc.__class__.__name__
+
+    def _silence_payload(self, payload: dict[str, Any]) -> None:
+        signal_adapter = TypeAdapter(list[Signal])
+        signals = signal_adapter.validate_python(payload.get("signals", []))
+        for signal in signals:
+            if self.policy.should_notify(signal):
+                self._silenced_keys.add(signal_notification_key(signal))
+
     async def _notify_payload(self, payload: dict[str, Any], now: datetime) -> None:
         signal_adapter = TypeAdapter(list[Signal])
         quote_adapter = TypeAdapter(dict[str, MarketQuote])
@@ -97,6 +118,8 @@ class MonitorRunner:
             if not self.policy.should_notify(signal):
                 continue
             key = signal_notification_key(signal)
+            if key in self._silenced_keys:
+                continue
             if key in self._notified_keys:
                 continue
             if not self.notifications_enabled():

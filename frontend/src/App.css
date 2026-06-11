@@ -1,5 +1,8 @@
 .shell {
-  min-height: 100dvh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding: 24px;
   color: #18211f;
 }
@@ -9,6 +12,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 20px;
+  width: 100%;
   max-width: 1440px;
   margin: 0 auto 18px;
 }
@@ -133,6 +137,7 @@ button {
 }
 
 .notice {
+  width: 100%;
   max-width: 1440px;
   margin: 0 auto 14px;
   display: flex;
@@ -150,12 +155,15 @@ button {
 }
 
 .workspace {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
   max-width: 1440px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: 240px minmax(420px, 1fr) 340px;
   gap: 14px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .panel {
@@ -171,6 +179,14 @@ button {
 
 .chart-panel {
   padding: 14px 14px 16px;
+}
+
+.watchlist,
+.chart-panel,
+.decision-panel {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .panel-title {
@@ -742,6 +758,10 @@ button {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  max-height: 118px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 2px;
 }
 
 .replay-point {
@@ -877,6 +897,68 @@ button {
 }
 
 .decision-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  overflow: hidden;
+}
+
+.decision-panel-head {
+  display: grid;
+  gap: 12px;
+}
+
+.decision-panel-head .panel-title {
+  margin-bottom: 0;
+}
+
+.decision-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2px;
+  border: 1px solid #d7dddb;
+  border-radius: 8px;
+  background: #f4f7f6;
+  padding: 2px;
+}
+
+.decision-tabs button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 32px;
+  border-radius: 6px;
+  background: transparent;
+  color: #4a5753;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.decision-tabs button.active {
+  background: #ffffff;
+  color: #16211e;
+  box-shadow: 0 1px 3px rgba(24, 33, 31, 0.1);
+}
+
+.decision-tabs button:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.decision-tab-body {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+}
+
+.decision-tab-panel {
   display: grid;
   gap: 12px;
 }
@@ -1086,11 +1168,10 @@ code {
   opacity: 0.52;
 }
 
-.trade-stats {
+.trade-stats,
+.trade-summary {
   display: grid;
   gap: 10px;
-  border-top: 1px solid #e6ece9;
-  padding-top: 12px;
 }
 
 .trade-stats-head {
@@ -1135,7 +1216,7 @@ code {
 
 .trade-stats-metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -1224,12 +1305,97 @@ code {
   text-align: center;
 }
 
+.summary-controls {
+  display: grid;
+  gap: 8px;
+}
+
+.summary-control {
+  display: grid;
+  gap: 5px;
+}
+
+.summary-control > span,
+.summary-rows > span {
+  color: #687570;
+  font-size: 12px;
+}
+
+.summary-segmented {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 2px;
+  border: 1px solid #d7dddb;
+  border-radius: 8px;
+  background: #f4f7f6;
+  padding: 2px;
+}
+
+.summary-segmented button {
+  min-height: 30px;
+  border-radius: 6px;
+  background: transparent;
+  color: #4a5753;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.summary-segmented button.active {
+  background: #ffffff;
+  color: #16211e;
+  box-shadow: 0 1px 3px rgba(24, 33, 31, 0.1);
+}
+
+.summary-rows {
+  display: grid;
+  gap: 8px;
+}
+
+.summary-row {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid #e6ece9;
+  border-radius: 8px;
+  background: #fbfdfc;
+  padding: 9px 10px;
+}
+
+.summary-row strong {
+  color: #263330;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 13px;
+}
+
+.summary-row small {
+  min-width: 0;
+  overflow: hidden;
+  color: #687570;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.summary-row em {
+  color: #1d6b45;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 700;
+}
+
 .risk-copy {
   margin: 0;
   line-height: 1.5;
 }
 
 .loading-grid {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
   max-width: 1440px;
   margin: 0 auto;
   display: grid;
@@ -1263,9 +1429,29 @@ code {
 }
 
 @media (max-width: 1100px) {
+  .shell {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
   .workspace,
   .loading-grid {
     grid-template-columns: 1fr;
+  }
+
+  .workspace {
+    min-height: auto;
+  }
+
+  .watchlist,
+  .chart-panel,
+  .decision-panel {
+    overflow: visible;
+  }
+
+  .decision-tab-body {
+    overflow: visible;
   }
 
   .topbar {

@@ -220,6 +220,39 @@ def test_repository_saves_and_reads_trade_confirmations() -> None:
     assert confirmations[0].price == 123.45
 
 
+def test_repository_reads_trade_confirmations_range() -> None:
+    created_at = datetime(2026, 6, 10, 10, 24, 5)
+    connection = FakeConnection(
+        rows=[
+            [
+                {
+                    "id": "confirm-1",
+                    "symbol": "300308",
+                    "trade_date": date(2026, 6, 10),
+                    "signal_timestamp": datetime(2026, 6, 10, 10, 24),
+                    "signal_action": "buy",
+                    "confirm_action": "buy",
+                    "price": 123.45,
+                    "quantity": 100,
+                    "source": "monitor",
+                    "reason": "AI低吸点位",
+                    "llm_confidence": 0.72,
+                    "created_at": created_at,
+                }
+            ],
+        ]
+    )
+    repo = PostgresRepository("postgresql://example", connection_factory=lambda _: connection)
+
+    confirmations = repo.list_trade_confirmations_range(date(2026, 6, 9), date(2026, 6, 10))
+
+    select_call = connection.execute_calls[0]
+    assert "trade_date >= %(start_date)s" in select_call["sql"]
+    assert "trade_date <= %(end_date)s" in select_call["sql"]
+    assert select_call["params"] == {"start_date": date(2026, 6, 9), "end_date": date(2026, 6, 10)}
+    assert confirmations[0].id == "confirm-1"
+
+
 def test_repository_deletes_trade_confirmation() -> None:
     connection = FakeConnection(rows=[[{"id": "confirm-1"}], []])
     repo = PostgresRepository("postgresql://example", connection_factory=lambda _: connection)

@@ -46,6 +46,23 @@ export type TradeConfirmationStats = {
   unpaired: TradeConfirmation[]
 }
 
+export type TradeConfirmationSummary = TradeConfirmationStats['summary']
+
+export type TradeConfirmationSummaryReport = {
+  start_date: string
+  end_date: string
+  symbol: string | null
+  summary: TradeConfirmationSummary
+  by_date: {
+    date: string
+    summary: TradeConfirmationSummary
+  }[]
+  by_symbol: {
+    symbol: string
+    summary: TradeConfirmationSummary
+  }[]
+}
+
 export function buildTradeConfirmationRequest(
   point: ReplayPoint,
   confirmAction: TradeConfirmationAction,
