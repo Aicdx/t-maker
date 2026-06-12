@@ -45,6 +45,7 @@ button {
 
 .icon-button,
 .primary-button,
+.small-icon-button,
 .monitor-toggle,
 .feishu-toggle,
 .manual-actions button {
@@ -71,6 +72,21 @@ button {
 .primary-button {
   background: #256f6b;
   color: #ffffff;
+}
+
+.primary-button:disabled,
+.icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.small-icon-button {
+  width: 32px;
+  min-height: 32px;
+  border: 1px solid #d7dddb;
+  background: #ffffff;
+  color: #263330;
+  padding: 0;
 }
 
 .monitor-toggle {
@@ -208,6 +224,24 @@ button {
 }
 
 .panel-title-row .panel-title {
+  margin-bottom: 0;
+}
+
+.watchlist {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 10px;
+  overflow: hidden;
+}
+
+.watchlist-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.watchlist-head .panel-title {
   margin-bottom: 0;
 }
 
@@ -358,21 +392,24 @@ button {
 
 .watch-items {
   display: grid;
+  grid-row: 3;
+  align-content: start;
   gap: 8px;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .watch-item {
   width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px;
   gap: 12px;
   border: 1px solid #dde4e1;
   border-radius: 8px;
   background: #f8faf9;
-  padding: 12px;
+  padding: 6px;
   text-align: left;
-  cursor: pointer;
 }
 
 .watch-item.active {
@@ -380,20 +417,226 @@ button {
   background: #eef8f6;
 }
 
+.watch-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #263330;
+  padding: 6px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.watch-select span {
+  min-width: 0;
+}
+
 .watch-item strong,
 .watch-item small {
   display: block;
+}
+
+.watch-item strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .watch-item small,
 .health-card small,
 .timeline small,
 .metric span,
-.position-card span,
+.position-editor span,
+.numeric-field span,
 .signal-head span,
 .risk-copy {
   color: #687570;
   font-size: 12px;
+}
+
+.watch-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  width: 34px;
+  border-radius: 6px;
+  background: transparent;
+  color: #7d8a86;
+  cursor: pointer;
+}
+
+.watch-delete:hover {
+  background: #fff5f2;
+  color: #9a321c;
+}
+
+.watch-delete:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
+.stock-search-panel {
+  display: grid;
+  gap: 9px;
+  border: 1px solid #e6ece9;
+  border-radius: 8px;
+  background: #fbfdfc;
+  padding: 10px;
+}
+
+.stock-search-box {
+  display: grid;
+  gap: 5px;
+}
+
+.stock-search-box > span {
+  color: #687570;
+  font-size: 12px;
+}
+
+.stock-search-box > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #d7dddb;
+  border-radius: 7px;
+  background: #ffffff;
+  padding: 0 8px;
+}
+
+.stock-search-box input,
+.numeric-field input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #18211f;
+  font: inherit;
+}
+
+.stock-search-box input {
+  min-height: 34px;
+  font-size: 13px;
+}
+
+.stock-search-results {
+  display: grid;
+  gap: 5px;
+  max-height: 132px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.stock-search-results button {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+  min-height: 32px;
+  border: 1px solid #dfe5e2;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #293633;
+  padding: 6px 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.stock-search-results button.active {
+  border-color: #256f6b;
+  background: #eef8f6;
+}
+
+.stock-search-results button:disabled {
+  cursor: not-allowed;
+  opacity: 0.54;
+}
+
+.stock-search-results strong,
+.selected-stock span,
+.position-editor-head strong {
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+}
+
+.stock-search-results span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stock-search-results em {
+  color: #687570;
+  font-size: 11px;
+  font-style: normal;
+}
+
+.stock-search-results > small {
+  color: #687570;
+  font-size: 12px;
+}
+
+.stock-form-grid,
+.position-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.numeric-field {
+  display: grid;
+  gap: 5px;
+}
+
+.numeric-field input {
+  min-height: 32px;
+  border: 1px solid #d7dddb;
+  border-radius: 7px;
+  background: #ffffff;
+  padding: 0 8px;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 13px;
+}
+
+.selected-stock {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid #dfe5e2;
+  border-radius: 7px;
+  background: #ffffff;
+  padding: 7px 8px;
+}
+
+.selected-stock strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #18211f;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stock-form-error {
+  margin: 0;
+  border: 1px solid #efc2c2;
+  border-radius: 6px;
+  background: #fff8f8;
+  padding: 8px;
+  color: #8c2f2f;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.stock-add-button {
+  width: 100%;
 }
 
 .fallback-note {
@@ -843,16 +1086,14 @@ button {
   color: #293633;
 }
 
-.metric-row,
-.position-card {
+.metric-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   margin-top: 10px;
 }
 
-.metric,
-.position-card div {
+.metric {
   display: grid;
   gap: 4px;
   border: 1px solid #e6ece9;
@@ -861,8 +1102,7 @@ button {
   background: #fbfdfc;
 }
 
-.metric strong,
-.position-card strong {
+.metric strong {
   color: #15201d;
   font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
   font-size: 18px;
@@ -963,9 +1203,30 @@ button {
   gap: 12px;
 }
 
-.position-card {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-top: 0;
+.position-editor {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #e6ece9;
+  border-radius: 8px;
+  background: #fbfdfc;
+  padding: 12px;
+}
+
+.position-editor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.position-editor-head div {
+  display: grid;
+  gap: 2px;
+}
+
+.position-editor-head strong {
+  color: #18211f;
+  font-size: 15px;
 }
 
 .signal-card {

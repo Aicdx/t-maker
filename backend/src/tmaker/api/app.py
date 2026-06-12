@@ -20,6 +20,7 @@ from tmaker.domain.models import (
     ProviderHealth,
     Signal,
     TradeConfirmationCreate,
+    WatchSymbol,
     build_trade_confirmation_summary,
     build_trade_confirmation_stats,
 )
@@ -30,6 +31,7 @@ from tmaker.llm.review import LlmReviewer, ReviewClient
 from tmaker.market.akshare_provider import MarketDataChannelUnavailable, MarketDataUnavailable
 from tmaker.market.eastmoney_provider import EastmoneyHistoricalMinuteProvider
 from tmaker.market.bars import aggregate_five_minute
+from tmaker.market.stock_search import EastmoneyStockSearchProvider
 from tmaker.market.tencent_provider import TencentHistoricalMinuteProvider, TencentMarketProvider
 from tmaker.monitor.policy import MonitorPolicy
 from tmaker.monitor.runner import MonitorRunner, SignalAnalyzer, TextNotifier
@@ -52,12 +54,6 @@ from tmaker.strategy.replay import (
 from tmaker.strategy.rules import evaluate_signal
 
 
-class WatchSymbol(BaseModel):
-    symbol: str
-    name: str
-    status: str = "watching"
-
-
 class AppState(BaseModel):
     watchlist: list[WatchSymbol]
     positions: list[Position]
@@ -74,6 +70,27 @@ class NotificationSettings(BaseModel):
     review_day_feishu_enabled: bool = False
 
 
+class WatchlistCreate(BaseModel):
+    symbol: str
+    name: str
+    base_quantity: int = Field(default=0, ge=0)
+    cost_price: float = Field(default=0, ge=0)
+    available_cash: float = Field(default=200000, ge=0)
+    t_quantity: int = Field(default=100, ge=0)
+
+
+class PositionUpdate(BaseModel):
+    base_quantity: int = Field(ge=0)
+    cost_price: float = Field(ge=0)
+    available_cash: float = Field(ge=0)
+    t_quantity: int = Field(ge=0)
+
+
+class StockSearchProvider:
+    def search(self, query: str, limit: int = 8) -> list[WatchSymbol]:
+        raise NotImplementedError
+
+
 _FEISHU_NOTIFICATIONS_ENABLED_KEY = "feishu_notifications_enabled"
 _REVIEW_DAY_FEISHU_ENABLED_KEY = "review_day_feishu_enabled"
 
@@ -84,6 +101,7 @@ def create_app(
     repository: PostgresRepository | None = None,
     monitor_analyzer: SignalAnalyzer | None = None,
     monitor_notifier: TextNotifier | None = None,
+    stock_search_provider: StockSearchProvider | None = None,
 ) -> FastAPI:
     app = FastAPI(title="T Maker API")
     state = _initial_state()
@@ -91,12 +109,22 @@ def create_app(
     provider = minute_provider or TencentMarketProvider()
     multi_day_provider = minute_provider or TencentHistoricalMinuteProvider()
     day_provider = minute_provider or EastmoneyHistoricalMinuteProvider()
+    search_provider = stock_search_provider or EastmoneyStockSearchProvider()
     reviewer = LlmReviewer(review_client or _default_review_client())
     repo = repository or PostgresRepository(settings.database_url)
+    _load_portfolio_from_repo(repo, state)
 
     class SnapshotRefreshService:
         def refresh(self) -> dict:
+            portfolio_error = _try_sync_portfolio_from_repo(repo, state)
             _refresh_from_provider(state, provider, reviewer, repo)
+            if portfolio_error is not None:
+                state.provider_health = state.provider_health.model_copy(
+                    update={
+                        "missing_candle_count": state.provider_health.missing_candle_count + 1,
+                        "last_error": _join_errors(state.provider_health.last_error, portfolio_error),
+                    }
+                )
             return _snapshot(state)
 
     snapshot_service = SnapshotRefreshService()
@@ -141,6 +169,67 @@ def create_app(
     @app.get("/api/snapshot")
     def snapshot() -> dict:
         return snapshot_service.refresh()
+
+    @app.get("/api/watchlist/search")
+    def watchlist_search(q: str) -> dict:
+        query = q.strip()
+        if len(query) < 2:
+            return {"results": []}
+        repo.init_schema()
+        local_matches = _search_local_watch_symbols(state.watchlist, query)
+        quote_match = _search_symbol_by_quote(provider, query)
+        remote_matches = _search_remote_symbols(search_provider, query)
+        results = _dedupe_watch_symbols([*quote_match, *local_matches, *remote_matches])
+        return {"results": [item.model_dump(mode="json") for item in results[:8]]}
+
+    @app.post("/api/watchlist")
+    def create_watch_symbol(payload: WatchlistCreate) -> dict:
+        repo.init_schema()
+        symbol = _normalize_symbol(payload.symbol)
+        if not symbol:
+            raise HTTPException(status_code=400, detail="Invalid symbol")
+        name = payload.name.strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="Stock name is required")
+        watch_symbol = WatchSymbol(symbol=symbol, name=name)
+        position = Position(
+            symbol=symbol,
+            base_quantity=payload.base_quantity,
+            cost_price=payload.cost_price,
+            available_cash=payload.available_cash,
+            t_quantity=payload.t_quantity,
+        )
+        repo.upsert_watch_symbol(watch_symbol)
+        repo.upsert_position(position)
+        _sync_portfolio_from_repo(repo, state)
+        return _snapshot(state)
+
+    @app.delete("/api/watchlist/{symbol}")
+    def delete_watch_symbol(symbol: str) -> dict:
+        repo.init_schema()
+        normalized = _normalize_symbol(symbol)
+        if not normalized:
+            raise HTTPException(status_code=400, detail="Invalid symbol")
+        if not repo.delete_watch_symbol(normalized):
+            raise HTTPException(status_code=404, detail="Symbol is not in watchlist")
+        repo.delete_position(normalized)
+        _remove_symbol_from_state(state, normalized)
+        _sync_portfolio_from_repo(repo, state)
+        return _snapshot(state)
+
+    @app.put("/api/positions/{symbol}")
+    def update_position(symbol: str, payload: PositionUpdate) -> dict:
+        repo.init_schema()
+        normalized = _normalize_symbol(symbol)
+        if not normalized:
+            raise HTTPException(status_code=400, detail="Invalid symbol")
+        _sync_portfolio_from_repo(repo, state)
+        if not any(item.symbol == normalized for item in state.watchlist):
+            raise HTTPException(status_code=404, detail="Symbol is not in watchlist")
+        position = Position(symbol=normalized, **payload.model_dump())
+        repo.upsert_position(position)
+        _sync_portfolio_from_repo(repo, state)
+        return position.model_dump(mode="json")
 
     @app.on_event("startup")
     async def start_monitor_when_enabled() -> None:
@@ -599,6 +688,146 @@ def _initial_state() -> AppState:
         signals=[initial_signal],
         provider_health=health,
     )
+
+
+def _default_watchlist() -> list[WatchSymbol]:
+    return [
+        WatchSymbol(symbol="300308", name="中际旭创"),
+        WatchSymbol(symbol="300502", name="新易盛"),
+        WatchSymbol(symbol="600487", name="亨通光电"),
+        WatchSymbol(symbol="000636", name="风华高科"),
+    ]
+
+
+def _default_positions() -> list[Position]:
+    return [
+        Position(
+            symbol="300308",
+            base_quantity=200,
+            cost_price=0,
+            available_cash=200000,
+            t_quantity=100,
+        ),
+        Position(
+            symbol="300502",
+            base_quantity=200,
+            cost_price=0,
+            available_cash=200000,
+            t_quantity=100,
+        ),
+        Position(
+            symbol="600487",
+            base_quantity=0,
+            cost_price=0,
+            available_cash=200000,
+            t_quantity=100,
+        ),
+        Position(
+            symbol="000636",
+            base_quantity=500,
+            cost_price=0,
+            available_cash=200000,
+            t_quantity=100,
+        ),
+    ]
+
+
+def _load_portfolio_from_repo(repo: PostgresRepository, state: AppState) -> None:
+    try:
+        repo.init_schema()
+        if not repo.list_watch_symbols():
+            for item in _default_watchlist():
+                repo.upsert_watch_symbol(item)
+            for position in _default_positions():
+                repo.upsert_position(position)
+        _sync_portfolio_from_repo(repo, state)
+    except Exception:
+        return
+
+
+def _try_sync_portfolio_from_repo(repo: PostgresRepository, state: AppState) -> str | None:
+    try:
+        _sync_portfolio_from_repo(repo, state)
+    except Exception as exc:
+        return f"portfolio: {_format_provider_error(exc)}"
+    return None
+
+
+def _sync_portfolio_from_repo(repo: PostgresRepository, state: AppState) -> None:
+    repo.init_schema()
+    watchlist = repo.list_watch_symbols()
+    positions = repo.list_positions()
+    if not watchlist:
+        return
+    state.watchlist = watchlist
+    position_symbols = {position.symbol for position in positions}
+    state.positions = [
+        *positions,
+        *[
+            Position(symbol=item.symbol, base_quantity=0, cost_price=0, available_cash=0, t_quantity=0)
+            for item in watchlist
+            if item.symbol not in position_symbols
+        ],
+    ]
+
+
+def _remove_symbol_from_state(state: AppState, symbol: str) -> None:
+    state.watchlist = [item for item in state.watchlist if item.symbol != symbol]
+    state.positions = [position for position in state.positions if position.symbol != symbol]
+    state.candles = [candle for candle in state.candles if candle.symbol != symbol]
+    state.signals = [signal for signal in state.signals if signal.symbol != symbol]
+    state.quotes.pop(symbol, None)
+
+
+def _normalize_symbol(symbol: str) -> str:
+    normalized = symbol.strip().lower()
+    if normalized.startswith(("sh", "sz", "bj")):
+        normalized = normalized[2:]
+    return normalized if len(normalized) == 6 and normalized.isdigit() else ""
+
+
+def _search_local_watch_symbols(watchlist: list[WatchSymbol], query: str) -> list[WatchSymbol]:
+    normalized = query.strip().lower()
+    return [
+        item
+        for item in watchlist
+        if normalized in item.symbol.lower() or normalized in item.name.lower()
+    ]
+
+
+def _search_symbol_by_quote(provider: TencentMarketProvider, query: str) -> list[WatchSymbol]:
+    symbol = _normalize_symbol(query)
+    if not symbol:
+        return []
+    try:
+        quote = provider.fetch_quote(symbol)
+    except Exception:
+        return []
+    return [WatchSymbol(symbol=quote.symbol, name=quote.name)]
+
+
+def _search_remote_symbols(provider: StockSearchProvider, query: str) -> list[WatchSymbol]:
+    try:
+        return provider.search(query, limit=8)
+    except Exception:
+        return []
+
+
+def _dedupe_watch_symbols(symbols: list[WatchSymbol]) -> list[WatchSymbol]:
+    deduped: list[WatchSymbol] = []
+    seen: set[str] = set()
+    for item in symbols:
+        symbol = _normalize_symbol(item.symbol)
+        if not symbol or symbol in seen:
+            continue
+        seen.add(symbol)
+        deduped.append(WatchSymbol(symbol=symbol, name=item.name.strip() or symbol, status=item.status))
+    return deduped
+
+
+def _join_errors(*errors: str | None) -> str | None:
+    values = [error for error in errors if error]
+    return "；".join(values) if values else None
 
 
 def _snapshot(state: AppState) -> dict:

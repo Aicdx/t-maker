@@ -49,6 +49,12 @@ class MarketQuote(BaseModel):
     change_percent: float
 
 
+class WatchSymbol(BaseModel):
+    symbol: str
+    name: str
+    status: str = "watching"
+
+
 class Position(BaseModel):
     symbol: str
     base_quantity: int = Field(ge=0)

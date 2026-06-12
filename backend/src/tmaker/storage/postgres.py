@@ -9,7 +9,14 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from tmaker.domain.models import Candle, MarketQuote, TradeConfirmation, TradeConfirmationCreate
+from tmaker.domain.models import (
+    Candle,
+    MarketQuote,
+    Position,
+    TradeConfirmation,
+    TradeConfirmationCreate,
+    WatchSymbol,
+)
 from tmaker.strategy.replay import ReplayPoint
 
 
@@ -94,6 +101,28 @@ CREATE TABLE IF NOT EXISTS t_trade_confirmations (
 
 CREATE INDEX IF NOT EXISTS idx_t_trade_confirmations_date_symbol
   ON t_trade_confirmations (trade_date, symbol, signal_timestamp, created_at);
+
+CREATE TABLE IF NOT EXISTS watch_symbols (
+  symbol TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'watching',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_watch_symbols_sort_order
+  ON watch_symbols (sort_order, symbol);
+
+CREATE TABLE IF NOT EXISTS stock_positions (
+  symbol TEXT PRIMARY KEY,
+  base_quantity INTEGER NOT NULL DEFAULT 0 CHECK (base_quantity >= 0),
+  cost_price NUMERIC NOT NULL DEFAULT 0 CHECK (cost_price >= 0),
+  available_cash NUMERIC NOT NULL DEFAULT 0 CHECK (available_cash >= 0),
+  t_quantity INTEGER NOT NULL DEFAULT 0 CHECK (t_quantity >= 0),
+  created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now()
+);
 
 CREATE TABLE IF NOT EXISTS app_settings (
   key TEXT PRIMARY KEY,
@@ -451,6 +480,110 @@ class PostgresRepository:
             connection.commit()
         return bool(rows)
 
+    def list_watch_symbols(self) -> list[WatchSymbol]:
+        with self._connect() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(
+                    """
+                    SELECT symbol, name, status
+                    FROM watch_symbols
+                    ORDER BY sort_order, created_at, symbol
+                    """
+                )
+                return [_row_to_watch_symbol(row) for row in cursor.fetchall()]
+
+    def upsert_watch_symbol(self, symbol: WatchSymbol) -> WatchSymbol:
+        with self._connect() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(
+                    """
+                    INSERT INTO watch_symbols (symbol, name, status, sort_order)
+                    VALUES (
+                      %(symbol)s,
+                      %(name)s,
+                      %(status)s,
+                      COALESCE((SELECT max(sort_order) + 1 FROM watch_symbols), 0)
+                    )
+                    ON CONFLICT (symbol) DO UPDATE SET
+                      name = EXCLUDED.name,
+                      status = EXCLUDED.status,
+                      updated_at = now()
+                    RETURNING symbol, name, status
+                    """,
+                    symbol.model_dump(),
+                )
+                rows = cursor.fetchall()
+            connection.commit()
+        return _row_to_watch_symbol(rows[0])
+
+    def delete_watch_symbol(self, symbol: str) -> bool:
+        with self._connect() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(
+                    """
+                    DELETE FROM watch_symbols
+                    WHERE symbol = %(symbol)s
+                    RETURNING symbol
+                    """,
+                    {"symbol": symbol},
+                )
+                rows = cursor.fetchall()
+            connection.commit()
+        return bool(rows)
+
+    def list_positions(self) -> list[Position]:
+        with self._connect() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(
+                    """
+                    SELECT symbol, base_quantity, cost_price, available_cash, t_quantity
+                    FROM stock_positions
+                    ORDER BY symbol
+                    """
+                )
+                return [_row_to_position(row) for row in cursor.fetchall()]
+
+    def upsert_position(self, position: Position) -> Position:
+        with self._connect() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(
+                    """
+                    INSERT INTO stock_positions (
+                      symbol, base_quantity, cost_price, available_cash, t_quantity
+                    )
+                    VALUES (
+                      %(symbol)s, %(base_quantity)s, %(cost_price)s,
+                      %(available_cash)s, %(t_quantity)s
+                    )
+                    ON CONFLICT (symbol) DO UPDATE SET
+                      base_quantity = EXCLUDED.base_quantity,
+                      cost_price = EXCLUDED.cost_price,
+                      available_cash = EXCLUDED.available_cash,
+                      t_quantity = EXCLUDED.t_quantity,
+                      updated_at = now()
+                    RETURNING symbol, base_quantity, cost_price, available_cash, t_quantity
+                    """,
+                    position.model_dump(),
+                )
+                rows = cursor.fetchall()
+            connection.commit()
+        return _row_to_position(rows[0])
+
+    def delete_position(self, symbol: str) -> bool:
+        with self._connect() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(
+                    """
+                    DELETE FROM stock_positions
+                    WHERE symbol = %(symbol)s
+                    RETURNING symbol
+                    """,
+                    {"symbol": symbol},
+                )
+                rows = cursor.fetchall()
+            connection.commit()
+        return bool(rows)
+
     def get_bool_setting(self, key: str, default: bool) -> bool:
         with self._connect() as connection:
             with connection.cursor(row_factory=dict_row) as cursor:
@@ -514,6 +647,24 @@ def _row_to_quote(row: dict[str, Any]) -> MarketQuote:
         low=float(row["low"]),
         change=float(row["change"]),
         change_percent=float(row["change_percent"]),
+    )
+
+
+def _row_to_watch_symbol(row: dict[str, Any]) -> WatchSymbol:
+    return WatchSymbol(
+        symbol=row["symbol"],
+        name=row["name"],
+        status=row["status"],
+    )
+
+
+def _row_to_position(row: dict[str, Any]) -> Position:
+    return Position(
+        symbol=row["symbol"],
+        base_quantity=int(row["base_quantity"]),
+        cost_price=float(row["cost_price"]),
+        available_cash=float(row["available_cash"]),
+        t_quantity=int(row["t_quantity"]),
     )
 
 

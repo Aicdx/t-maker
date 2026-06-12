@@ -226,7 +226,7 @@ async def test_tick_deduplicates_repeated_signal() -> None:
 
 
 @pytest.mark.asyncio
-async def test_tick_allows_notification_after_dedup_window_expires() -> None:
+async def test_tick_never_resends_the_same_signal_after_dedup_window_expires() -> None:
     runner = MonitorRunner(
         snapshot_service=FakeSnapshotService([_signal()]),
         analyzer=FakeAnalyzer(),
@@ -242,7 +242,7 @@ async def test_tick_allows_notification_after_dedup_window_expires() -> None:
     assert runner.state.notification_count == 1
 
     await runner.tick(now=datetime(2026, 6, 9, 10, 26), force=True)
-    assert runner.state.notification_count == 2
+    assert runner.state.notification_count == 1
 
 
 @pytest.mark.asyncio

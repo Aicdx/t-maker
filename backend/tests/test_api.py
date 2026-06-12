@@ -10,7 +10,14 @@ import pytest
 
 import tmaker.api.app as app_module
 from tmaker.api.app import create_app
-from tmaker.domain.models import Candle, MarketQuote, TradeConfirmation, TradeConfirmationCreate
+from tmaker.domain.models import (
+    Candle,
+    MarketQuote,
+    Position,
+    TradeConfirmation,
+    TradeConfirmationCreate,
+    WatchSymbol,
+)
 from tmaker.market.akshare_provider import MarketDataChannelUnavailable, MarketDataUnavailable
 from tmaker.notify.feishu import FeishuConfigError, FeishuDeliveryError
 from tmaker.strategy.replay import ReplayPoint
@@ -147,6 +154,22 @@ class FakeMonitorNotifier:
             raise self.exc
 
 
+class FakeStockSearchProvider:
+    def __init__(self, results: list[WatchSymbol]) -> None:
+        self.results = results
+        self.queries: list[str] = []
+
+    def search(self, query: str, limit: int = 8) -> list[WatchSymbol]:
+        self.queries.append(query)
+        normalized = query.lower()
+        matches = [
+            result
+            for result in self.results
+            if normalized in result.symbol.lower() or normalized in result.name.lower()
+        ]
+        return matches[:limit]
+
+
 class FakeRepository:
     def __init__(self) -> None:
         self.minute_bars: dict[tuple[str, date], list[Candle]] = {}
@@ -154,6 +177,8 @@ class FakeRepository:
         self.quotes: dict[tuple[str, date], MarketQuote] = {}
         self.confirmations: dict[str, TradeConfirmation] = {}
         self.bool_settings: dict[str, bool] = {}
+        self.watch_symbols: dict[str, WatchSymbol] = {}
+        self.positions: dict[str, Position] = {}
         self.saved_bars: list[Candle] = []
         self.saved_points: list[ReplayPoint] = []
         self.schema_initialized = False
@@ -249,6 +274,26 @@ class FakeRepository:
     def set_bool_setting(self, key: str, value: bool) -> None:
         self.bool_settings[key] = value
 
+    def list_watch_symbols(self) -> list[WatchSymbol]:
+        return list(self.watch_symbols.values())
+
+    def upsert_watch_symbol(self, symbol: WatchSymbol) -> WatchSymbol:
+        self.watch_symbols[symbol.symbol] = symbol
+        return symbol
+
+    def delete_watch_symbol(self, symbol: str) -> bool:
+        return self.watch_symbols.pop(symbol, None) is not None
+
+    def list_positions(self) -> list[Position]:
+        return list(self.positions.values())
+
+    def upsert_position(self, position: Position) -> Position:
+        self.positions[position.symbol] = position
+        return position
+
+    def delete_position(self, symbol: str) -> bool:
+        return self.positions.pop(symbol, None) is not None
+
 
 def test_health_endpoint_reports_ok() -> None:
     client = TestClient(create_app())
@@ -301,6 +346,96 @@ def test_snapshot_endpoint_returns_watchlist_positions_and_signals() -> None:
     assert positions_by_symbol["300502"]["available_cash"] == 200000
     assert positions_by_symbol["600487"]["available_cash"] == 200000
     assert "signals" in payload
+
+
+def test_watchlist_search_accepts_chinese_name_from_remote_candidates() -> None:
+    search_provider = FakeStockSearchProvider([WatchSymbol(symbol="002415", name="海康威视")])
+    client = TestClient(
+        _test_app(
+            minute_provider=FakeProvider(_provider_candles()),
+            stock_search_provider=search_provider,
+        )
+    )
+
+    response = client.get("/api/watchlist/search", params={"q": "海康"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["results"][0] == {
+        "symbol": "002415",
+        "name": "海康威视",
+        "status": "watching",
+    }
+    assert search_provider.queries == ["海康"]
+
+
+def test_watchlist_search_accepts_stock_code_and_uses_quote_name() -> None:
+    provider = FakeProvider(
+        _provider_candles(),
+        quotes={"002415": _quote("002415", "海康威视", latest=31.2, previous_close=30, open_price=30.5)},
+    )
+    client = TestClient(_test_app(minute_provider=provider))
+
+    response = client.get("/api/watchlist/search", params={"q": "002415"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["results"][0] == {
+        "symbol": "002415",
+        "name": "海康威视",
+        "status": "watching",
+    }
+    assert provider.quote_calls == ["002415"]
+
+
+def test_watchlist_can_add_delete_symbol_and_edit_position() -> None:
+    candles = {
+        "000636": _provider_candles("000636", close=14.2),
+        "600487": _provider_candles("600487", close=23.4),
+        "300308": _provider_candles("300308", close=151.6),
+        "300502": _provider_candles("300502", close=126.8),
+        "002415": _provider_candles("002415", close=31.2),
+    }
+    provider = FakeProvider(
+        candles,
+        quotes={"002415": _quote("002415", "海康威视", latest=31.2, previous_close=30, open_price=30.5)},
+    )
+    client = TestClient(_test_app(minute_provider=provider))
+
+    add_response = client.post(
+        "/api/watchlist",
+        json={
+            "symbol": "002415",
+            "name": "海康威视",
+            "base_quantity": 300,
+            "cost_price": 30.5,
+            "available_cash": 80000,
+            "t_quantity": 100,
+        },
+    )
+    update_response = client.put(
+        "/api/positions/002415",
+        json={
+            "base_quantity": 500,
+            "cost_price": 29.8,
+            "available_cash": 60000,
+            "t_quantity": 200,
+        },
+    )
+    snapshot_response = client.get("/api/snapshot")
+    delete_response = client.delete("/api/watchlist/002415")
+
+    assert add_response.status_code == 200
+    assert update_response.status_code == 200
+    payload = snapshot_response.json()
+    assert any(item["symbol"] == "002415" and item["name"] == "海康威视" for item in payload["watchlist"])
+    positions_by_symbol = {position["symbol"]: position for position in payload["positions"]}
+    assert positions_by_symbol["002415"]["base_quantity"] == 500
+    assert positions_by_symbol["002415"]["cost_price"] == 29.8
+    assert positions_by_symbol["002415"]["available_cash"] == 60000
+    assert positions_by_symbol["002415"]["t_quantity"] == 200
+    assert delete_response.status_code == 200
+    assert all(item["symbol"] != "002415" for item in delete_response.json()["watchlist"])
 
 
 def test_simulate_tick_adds_a_signal() -> None:

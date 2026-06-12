@@ -7,9 +7,13 @@ import {
   CalendarBlank,
   CaretLeft,
   CaretRight,
+  FloppyDisk,
   ListChecks,
+  MagnifyingGlass,
+  Plus,
   Pulse,
   Target,
+  Trash,
   WarningCircle,
   Wallet,
 } from '@phosphor-icons/react'
@@ -155,6 +159,22 @@ type TradingDayPayload = {
 type NotificationSettings = {
   feishu_notifications_enabled: boolean
   review_day_feishu_enabled: boolean
+}
+
+type WatchlistCreatePayload = {
+  symbol: string
+  name: string
+  base_quantity: number
+  cost_price: number
+  available_cash: number
+  t_quantity: number
+}
+
+type PositionUpdatePayload = {
+  base_quantity: number
+  cost_price: number
+  available_cash: number
+  t_quantity: number
 }
 
 type LlmReview = {
@@ -315,6 +335,40 @@ async function updateNotificationSettings(settings: NotificationSettings) {
   return (await response.json()) as NotificationSettings
 }
 
+async function searchWatchSymbols(query: string, signal?: AbortSignal) {
+  const response = await fetch(`${API_BASE}/api/watchlist/search?q=${encodeURIComponent(query)}`, { signal })
+  if (!response.ok) throw new Error(await apiErrorMessage(response))
+  return (await response.json()) as { results: WatchSymbol[] }
+}
+
+async function createWatchSymbol(payload: WatchlistCreatePayload) {
+  const response = await fetch(`${API_BASE}/api/watchlist`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!response.ok) throw new Error(await apiErrorMessage(response))
+  return (await response.json()) as Snapshot
+}
+
+async function deleteWatchSymbol(symbol: string) {
+  const response = await fetch(`${API_BASE}/api/watchlist/${encodeURIComponent(symbol)}`, {
+    method: 'DELETE',
+  })
+  if (!response.ok) throw new Error(await apiErrorMessage(response))
+  return (await response.json()) as Snapshot
+}
+
+async function updatePosition(symbol: string, payload: PositionUpdatePayload) {
+  const response = await fetch(`${API_BASE}/api/positions/${encodeURIComponent(symbol)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!response.ok) throw new Error(await apiErrorMessage(response))
+  return (await response.json()) as Position
+}
+
 function App() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
   const [loading, setLoading] = useState(true)
@@ -356,9 +410,39 @@ function App() {
   const [reviewDayFeishuEnabled, setReviewDayFeishuEnabled] = useState(false)
   const [feishuSettingSaving, setFeishuSettingSaving] = useState(false)
   const [monitorSettingSaving, setMonitorSettingSaving] = useState(false)
+  const [stockSearchOpen, setStockSearchOpen] = useState(false)
+  const [stockSearchQuery, setStockSearchQuery] = useState('')
+  const [stockSearchResults, setStockSearchResults] = useState<WatchSymbol[]>([])
+  const [selectedStockCandidate, setSelectedStockCandidate] = useState<WatchSymbol | null>(null)
+  const [stockForm, setStockForm] = useState<PositionUpdatePayload>({
+    base_quantity: 0,
+    cost_price: 0,
+    available_cash: 200000,
+    t_quantity: 100,
+  })
+  const [stockSearchLoading, setStockSearchLoading] = useState(false)
+  const [stockActionSaving, setStockActionSaving] = useState(false)
+  const [stockActionError, setStockActionError] = useState('')
+  const [deletingSymbol, setDeletingSymbol] = useState<string | null>(null)
+  const [positionSaving, setPositionSaving] = useState(false)
+  const [positionError, setPositionError] = useState('')
   const lastLoadedDaysSymbolRef = useRef<string | null>(null)
   const isReplaying = replayReviewLoading || dayLoading
   const currentMonitorStatus = monitorStatus(monitorEnabled, monitorNow)
+
+  function resetReplayContext() {
+    setHoveredPoint(null)
+    setSelectedReplayKey(null)
+    setReplay(null)
+    setRecentReplay(null)
+    setSelectedReplayDate(null)
+    setSelectedDayPayload(null)
+    setPlaybackStatus('idle')
+    setPlaybackCandles(null)
+    setPlaybackDate(null)
+    setPlaybackPoints([])
+    setPlaybackQueue([])
+  }
 
   const applySnapshotPayload = useCallback((payload: Snapshot) => {
     setSnapshot(payload)
@@ -368,6 +452,45 @@ function App() {
         : (payload.watchlist[0]?.symbol ?? '300308'),
     )
   }, [])
+
+  function updateStockSearchQuery(value: string) {
+    setStockSearchQuery(value)
+    setSelectedStockCandidate(null)
+    if (value.trim().length < 2) {
+      setStockSearchResults([])
+      setStockActionError('')
+      setStockSearchLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!stockSearchOpen) return
+    const query = stockSearchQuery.trim()
+    if (query.length < 2) return
+    const controller = new AbortController()
+    const timer = window.setTimeout(() => {
+      setStockSearchLoading(true)
+      searchWatchSymbols(query, controller.signal)
+        .then((payload) => {
+          if (controller.signal.aborted) return
+          setStockSearchResults(payload.results)
+          setStockActionError('')
+        })
+        .catch((err: unknown) => {
+          if (err instanceof DOMException && err.name === 'AbortError') return
+          setStockActionError(err instanceof Error ? err.message : '股票搜索失败')
+          setStockSearchResults([])
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setStockSearchLoading(false)
+        })
+    }, 320)
+
+    return () => {
+      controller.abort()
+      window.clearTimeout(timer)
+    }
+  }, [stockSearchOpen, stockSearchQuery])
 
   const loadTradeStats = useCallback(async (date?: string, symbol?: string, signal?: AbortSignal) => {
     try {
@@ -459,6 +582,79 @@ function App() {
       setTradeStatsError(err instanceof Error ? err.message : '确认记录删除失败')
     } finally {
       setDeletingTradeId(null)
+    }
+  }
+
+  async function addSelectedStock() {
+    if (!selectedStockCandidate) {
+      setStockActionError('请先从搜索结果里选择一只股票')
+      return
+    }
+    try {
+      setStockActionSaving(true)
+      setStockActionError('')
+      const payload = await createWatchSymbol({
+        symbol: selectedStockCandidate.symbol,
+        name: selectedStockCandidate.name,
+        ...stockForm,
+      })
+      resetReplayContext()
+      applySnapshotPayload(payload)
+      setSelectedSymbol(selectedStockCandidate.symbol)
+      lastLoadedDaysSymbolRef.current = null
+      setStockSearchOpen(false)
+      setStockSearchQuery('')
+      setStockSearchResults([])
+      setSelectedStockCandidate(null)
+    } catch (err) {
+      setStockActionError(err instanceof Error ? err.message : '股票添加失败')
+    } finally {
+      setStockActionSaving(false)
+    }
+  }
+
+  async function removeWatchSymbol(symbol: string) {
+    try {
+      setDeletingSymbol(symbol)
+      setStockActionError('')
+      const payload = await deleteWatchSymbol(symbol)
+      resetReplayContext()
+      applySnapshotPayload(payload)
+      lastLoadedDaysSymbolRef.current = null
+    } catch (err) {
+      setStockActionError(err instanceof Error ? err.message : '股票删除失败')
+    } finally {
+      setDeletingSymbol(null)
+    }
+  }
+
+  async function saveSelectedPosition(payload: PositionUpdatePayload) {
+    try {
+      setPositionSaving(true)
+      setPositionError('')
+      const saved = await updatePosition(selectedSymbol, payload)
+      setSnapshot((current) => {
+        if (!current) return current
+        const positionMap = new Map(current.positions.map((position) => [position.symbol, position]))
+        positionMap.set(saved.symbol, saved)
+        return {
+          ...current,
+          positions: current.watchlist.map(
+            (item) =>
+              positionMap.get(item.symbol) ?? {
+                symbol: item.symbol,
+                base_quantity: 0,
+                cost_price: 0,
+                available_cash: 0,
+                t_quantity: 0,
+              },
+          ),
+        }
+      })
+    } catch (err) {
+      setPositionError(err instanceof Error ? err.message : '持仓保存失败')
+    } finally {
+      setPositionSaving(false)
     }
   }
 
@@ -991,14 +1187,45 @@ function App() {
       ) : snapshot ? (
         <section className="workspace">
           <aside className="watchlist panel">
-            <PanelTitle icon={<Database size={18} />} title="股票池" />
+            <div className="watchlist-head">
+              <PanelTitle icon={<Database size={18} />} title="股票池" />
+              <button
+                type="button"
+                className="small-icon-button"
+                aria-label={stockSearchOpen ? '收起新增股票' : '新增股票'}
+                title={stockSearchOpen ? '收起新增股票' : '新增股票'}
+                onClick={() => setStockSearchOpen((current) => !current)}
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+            {stockSearchOpen && (
+              <StockSearchPanel
+                query={stockSearchQuery}
+                results={stockSearchResults}
+                selected={selectedStockCandidate}
+                form={stockForm}
+                loading={stockSearchLoading}
+                saving={stockActionSaving}
+                error={stockActionError}
+                existingSymbols={snapshot.watchlist.map((item) => item.symbol)}
+                onQueryChange={updateStockSearchQuery}
+                onSelect={setSelectedStockCandidate}
+                onFormChange={setStockForm}
+                onAdd={() => void addSelectedStock()}
+              />
+            )}
+            {!stockSearchOpen && stockActionError && <p className="stock-form-error">{stockActionError}</p>}
             <div className="watch-items">
               {snapshot.watchlist.map((item) => (
-                <button
-                  type="button"
+                <div
                   key={item.symbol}
                   className={item.symbol === selectedSymbol ? 'watch-item active' : 'watch-item'}
-                  onClick={() => {
+                >
+                  <button
+                    type="button"
+                    className="watch-select"
+                    onClick={() => {
                     setHoveredPoint(null)
                     setSelectedSymbol(item.symbol)
                     lastLoadedDaysSymbolRef.current = null
@@ -1006,13 +1233,24 @@ function App() {
                       void loadTradingDays(item.symbol, selectedTradeDate)
                     }
                   }}
-                >
-                  <span>
-                    <strong>{item.symbol}</strong>
-                    <small>{item.name}</small>
-                  </span>
-                  <StatusPill signal={latestSignalFor(snapshot.signals, item.symbol)} />
-                </button>
+                  >
+                    <span>
+                      <strong>{item.symbol}</strong>
+                      <small>{item.name}</small>
+                    </span>
+                    <StatusPill signal={latestSignalFor(snapshot.signals, item.symbol)} />
+                  </button>
+                  <button
+                    type="button"
+                    className="watch-delete"
+                    aria-label={`删除 ${item.name}`}
+                    title={`删除 ${item.name}`}
+                    disabled={deletingSymbol === item.symbol || snapshot.watchlist.length <= 1}
+                    onClick={() => void removeWatchSymbol(item.symbol)}
+                  >
+                    <Trash size={15} />
+                  </button>
+                </div>
               ))}
             </div>
           </aside>
@@ -1123,7 +1361,12 @@ function App() {
               )}
               {decisionTab === 'position' && (
                 <section className="decision-tab-panel">
-                  <PositionCard position={selectedPosition} />
+                  <PositionCard
+                    position={selectedPosition}
+                    saving={positionSaving}
+                    error={positionError}
+                    onSave={(payload) => void saveSelectedPosition(payload)}
+                  />
                   <SignalCard signal={selectedSignal} />
                 </section>
               )}
@@ -1439,27 +1682,231 @@ function StatusPill({ signal }: { signal?: Signal }) {
   return <em className={`status ${kind}`}>{labelMap[kind]}</em>
 }
 
-function PositionCard({ position }: { position?: Position }) {
+function StockSearchPanel({
+  query,
+  results,
+  selected,
+  form,
+  loading,
+  saving,
+  error,
+  existingSymbols,
+  onQueryChange,
+  onSelect,
+  onFormChange,
+  onAdd,
+}: {
+  query: string
+  results: WatchSymbol[]
+  selected: WatchSymbol | null
+  form: PositionUpdatePayload
+  loading: boolean
+  saving: boolean
+  error: string
+  existingSymbols: string[]
+  onQueryChange: (value: string) => void
+  onSelect: (value: WatchSymbol) => void
+  onFormChange: (value: PositionUpdatePayload) => void
+  onAdd: () => void
+}) {
+  const existing = new Set(existingSymbols)
+  return (
+    <div className="stock-search-panel">
+      <label className="stock-search-box">
+        <span>输入代码或中文名</span>
+        <div>
+          <MagnifyingGlass size={15} />
+          <input
+            value={query}
+            onChange={(event) => onQueryChange(event.target.value)}
+            placeholder="例如 600487 或 亨通光电"
+          />
+        </div>
+      </label>
+      <div className="stock-search-results">
+        {loading ? (
+          <small>搜索中</small>
+        ) : results.length ? (
+          results.map((item) => {
+            const disabled = existing.has(item.symbol)
+            return (
+              <button
+                type="button"
+                key={item.symbol}
+                className={selected?.symbol === item.symbol ? 'active' : ''}
+                disabled={disabled}
+                onClick={() => onSelect(item)}
+              >
+                <strong>{item.symbol}</strong>
+                <span>{item.name}</span>
+                <em>{disabled ? '已在池中' : '选择'}</em>
+              </button>
+            )
+          })
+        ) : (
+          <small>{query.trim().length >= 2 ? '暂无匹配股票' : '至少输入 2 个字符'}</small>
+        )}
+      </div>
+      <div className="stock-form-grid">
+        <NumericInput
+          label="底仓"
+          value={form.base_quantity}
+          onChange={(value) => onFormChange({ ...form, base_quantity: value })}
+        />
+        <NumericInput
+          label="计划做T"
+          value={form.t_quantity}
+          onChange={(value) => onFormChange({ ...form, t_quantity: value })}
+        />
+        <NumericInput
+          label="成本"
+          value={form.cost_price}
+          step="0.01"
+          onChange={(value) => onFormChange({ ...form, cost_price: value })}
+        />
+        <NumericInput
+          label="可用资金"
+          value={form.available_cash}
+          step="100"
+          onChange={(value) => onFormChange({ ...form, available_cash: value })}
+        />
+      </div>
+      {selected && (
+        <div className="selected-stock">
+          <span>{selected.symbol}</span>
+          <strong>{selected.name}</strong>
+        </div>
+      )}
+      {error && <p className="stock-form-error">{error}</p>}
+      <button
+        type="button"
+        className="primary-button stock-add-button"
+        disabled={!selected || saving || existing.has(selected.symbol)}
+        onClick={onAdd}
+      >
+        <Plus size={16} />
+        {saving ? '添加中' : '加入股票池'}
+      </button>
+    </div>
+  )
+}
+
+function PositionCard({
+  position,
+  saving,
+  error,
+  onSave,
+}: {
+  position?: Position
+  saving: boolean
+  error: string
+  onSave: (payload: PositionUpdatePayload) => void
+}) {
   if (!position) return <div className="empty-state">未录入持仓</div>
   return (
-    <div className="position-card">
-      <div>
-        <span>底仓</span>
-        <strong>{position.base_quantity}</strong>
+    <PositionEditor
+      key={`${position.symbol}-${position.base_quantity}-${position.cost_price}-${position.available_cash}-${position.t_quantity}`}
+      position={position}
+      saving={saving}
+      error={error}
+      onSave={onSave}
+    />
+  )
+}
+
+function PositionEditor({
+  position,
+  saving,
+  error,
+  onSave,
+}: {
+  position: Position
+  saving: boolean
+  error: string
+  onSave: (payload: PositionUpdatePayload) => void
+}) {
+  const [form, setForm] = useState<PositionUpdatePayload>({
+    base_quantity: position.base_quantity,
+    cost_price: position.cost_price,
+    available_cash: position.available_cash,
+    t_quantity: position.t_quantity,
+  })
+
+  const changed =
+    form.base_quantity !== position.base_quantity ||
+    form.cost_price !== position.cost_price ||
+    form.available_cash !== position.available_cash ||
+    form.t_quantity !== position.t_quantity
+
+  return (
+    <form
+      className="position-editor"
+      onSubmit={(event) => {
+        event.preventDefault()
+        onSave(form)
+      }}
+    >
+      <div className="position-editor-head">
+        <div>
+          <span>当前持仓</span>
+          <strong>{position.symbol}</strong>
+        </div>
+        <button type="submit" className="icon-button" disabled={saving || !changed}>
+          <FloppyDisk size={16} />
+          {saving ? '保存中' : '保存'}
+        </button>
       </div>
-      <div>
-        <span>成本</span>
-        <strong>{position.cost_price.toFixed(2)}</strong>
+      <div className="position-form-grid">
+        <NumericInput
+          label="底仓"
+          value={form.base_quantity}
+          onChange={(value) => setForm({ ...form, base_quantity: value })}
+        />
+        <NumericInput
+          label="计划做T"
+          value={form.t_quantity}
+          onChange={(value) => setForm({ ...form, t_quantity: value })}
+        />
+        <NumericInput
+          label="成本"
+          value={form.cost_price}
+          step="0.01"
+          onChange={(value) => setForm({ ...form, cost_price: value })}
+        />
+        <NumericInput
+          label="可用资金"
+          value={form.available_cash}
+          step="100"
+          onChange={(value) => setForm({ ...form, available_cash: value })}
+        />
       </div>
-      <div>
-        <span>可用资金</span>
-        <strong>{position.available_cash.toFixed(0)}</strong>
-      </div>
-      <div>
-        <span>计划做T</span>
-        <strong>{position.t_quantity}</strong>
-      </div>
-    </div>
+      {error && <p className="stock-form-error">{error}</p>}
+    </form>
+  )
+}
+
+function NumericInput({
+  label,
+  value,
+  step = '1',
+  onChange,
+}: {
+  label: string
+  value: number
+  step?: string
+  onChange: (value: number) => void
+}) {
+  return (
+    <label className="numeric-field">
+      <span>{label}</span>
+      <input
+        type="number"
+        min="0"
+        step={step}
+        value={String(value)}
+        onChange={(event) => onChange(Math.max(0, Number(event.target.value) || 0))}
+      />
+    </label>
   )
 }
 

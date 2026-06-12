@@ -55,6 +55,7 @@ class MonitorRunner:
         self.state = MonitorRuntimeState()
         self._task: asyncio.Task[None] | None = None
         self._notified_keys: dict[str, datetime] = {}
+        self._sent_keys: set[str] = set()
         self._silenced_keys: set[str] = set()
 
     async def start(self, *, silence_existing: bool = False) -> None:
@@ -120,6 +121,8 @@ class MonitorRunner:
             key = signal_notification_key(signal)
             if key in self._silenced_keys:
                 continue
+            if key in self._sent_keys:
+                continue
             if key in self._notified_keys:
                 continue
             if not self.notifications_enabled():
@@ -140,6 +143,7 @@ class MonitorRunner:
                 analysis = fallback_codex_analysis(exc)
             message = format_feishu_message(signal=signal, quote=quote, codex_analysis=analysis)
             await self.notifier.send_text(message)
+            self._sent_keys.add(key)
             self._notified_keys[key] = now
             self.state.notification_count += 1
             self.state.last_notified_signal_key = key

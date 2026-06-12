@@ -4,7 +4,14 @@ from datetime import date, datetime
 
 from psycopg.types.json import Jsonb
 
-from tmaker.domain.models import Candle, SignalAction, TradeConfirmationAction, TradeConfirmationCreate
+from tmaker.domain.models import (
+    Candle,
+    Position,
+    SignalAction,
+    TradeConfirmationAction,
+    TradeConfirmationCreate,
+    WatchSymbol,
+)
 from tmaker.storage.postgres import PostgresRepository, SCHEMA_SQL
 from tmaker.strategy.replay import ReplayPoint
 
@@ -14,11 +21,87 @@ def test_schema_sql_creates_market_and_signal_tables() -> None:
     assert "CREATE TABLE IF NOT EXISTS stock_quotes" in SCHEMA_SQL
     assert "CREATE TABLE IF NOT EXISTS t_signal_points" in SCHEMA_SQL
     assert "CREATE TABLE IF NOT EXISTS t_trade_confirmations" in SCHEMA_SQL
+    assert "CREATE TABLE IF NOT EXISTS watch_symbols" in SCHEMA_SQL
+    assert "CREATE TABLE IF NOT EXISTS stock_positions" in SCHEMA_SQL
     assert "CREATE TABLE IF NOT EXISTS app_settings" in SCHEMA_SQL
     assert "PRIMARY KEY (symbol, timestamp)" in SCHEMA_SQL
     assert "PRIMARY KEY (symbol, trade_date)" in SCHEMA_SQL
     assert "PRIMARY KEY (symbol, timestamp, action, strict_mode)" in SCHEMA_SQL
     assert "idx_t_trade_confirmations_date_symbol" in SCHEMA_SQL
+
+
+def test_repository_saves_and_reads_watch_symbols_and_positions() -> None:
+    connection = FakeConnection(
+        rows=[
+            [{"symbol": "600487", "name": "亨通光电", "status": "watching"}],
+            [
+                {"symbol": "600487", "name": "亨通光电", "status": "watching"},
+                {"symbol": "300308", "name": "中际旭创", "status": "watching"},
+            ],
+            [
+                {
+                    "symbol": "600487",
+                    "base_quantity": 1000,
+                    "cost_price": 18.25,
+                    "available_cash": 50000,
+                    "t_quantity": 200,
+                }
+            ],
+            [
+                {
+                    "symbol": "600487",
+                    "base_quantity": 1000,
+                    "cost_price": 18.25,
+                    "available_cash": 50000,
+                    "t_quantity": 200,
+                }
+            ],
+        ]
+    )
+    repo = PostgresRepository("postgresql://example", connection_factory=lambda _: connection)
+
+    saved_symbol = repo.upsert_watch_symbol(WatchSymbol(symbol="600487", name="亨通光电"))
+    symbols = repo.list_watch_symbols()
+    saved_position = repo.upsert_position(
+        Position(
+            symbol="600487",
+            base_quantity=1000,
+            cost_price=18.25,
+            available_cash=50000,
+            t_quantity=200,
+        )
+    )
+    positions = repo.list_positions()
+
+    assert saved_symbol == WatchSymbol(symbol="600487", name="亨通光电")
+    assert symbols == [
+        WatchSymbol(symbol="600487", name="亨通光电"),
+        WatchSymbol(symbol="300308", name="中际旭创"),
+    ]
+    assert saved_position == Position(
+        symbol="600487",
+        base_quantity=1000,
+        cost_price=18.25,
+        available_cash=50000,
+        t_quantity=200,
+    )
+    assert positions == [saved_position]
+    assert "INSERT INTO watch_symbols" in connection.execute_calls[0]["sql"]
+    assert connection.execute_calls[0]["params"]["symbol"] == "600487"
+    assert "INSERT INTO stock_positions" in connection.execute_calls[2]["sql"]
+
+
+def test_repository_deletes_watch_symbol_and_position() -> None:
+    connection = FakeConnection(rows=[[{"symbol": "600487"}], [{"symbol": "600487"}], []])
+    repo = PostgresRepository("postgresql://example", connection_factory=lambda _: connection)
+
+    assert repo.delete_watch_symbol("600487") is True
+    assert repo.delete_position("600487") is True
+    assert repo.delete_watch_symbol("missing") is False
+
+    assert "DELETE FROM watch_symbols" in connection.execute_calls[0]["sql"]
+    assert connection.execute_calls[0]["params"] == {"symbol": "600487"}
+    assert "DELETE FROM stock_positions" in connection.execute_calls[1]["sql"]
 
 
 def test_repository_saves_and_reads_minute_bars() -> None:
