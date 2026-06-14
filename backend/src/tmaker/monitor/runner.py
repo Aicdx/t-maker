@@ -8,11 +8,12 @@ from typing import Any, Protocol
 
 from pydantic import TypeAdapter
 
-from tmaker.domain.models import MarketQuote, Signal
+from tmaker.domain.models import MarketQuote, Signal, SignalAction
 from tmaker.llm.codex_analysis import fallback_codex_analysis
 from tmaker.monitor.policy import MonitorPolicy, signal_notification_key
 from tmaker.monitor.state import MonitorRuntimeState
 from tmaker.notify.feishu import format_feishu_message
+from tmaker.strategy.t_pairing import LiveTTradePlanner, TradeActionPoint
 
 
 class SnapshotService(Protocol):
@@ -57,6 +58,7 @@ class MonitorRunner:
         self._notified_keys: dict[str, datetime] = {}
         self._sent_keys: set[str] = set()
         self._silenced_keys: set[str] = set()
+        self._trade_planner = LiveTTradePlanner()
 
     async def start(self, *, silence_existing: bool = False) -> None:
         if self._task and not self._task.done():
@@ -128,6 +130,11 @@ class MonitorRunner:
             if not self.notifications_enabled():
                 continue
             quote = quotes.get(signal.symbol)
+            point = _trade_action_point(signal, quote, payload)
+            if point is None and signal.llm_review and signal.llm_review.action in {SignalAction.BUY, SignalAction.SELL}:
+                continue
+            if point is not None and not self._trade_planner.should_notify(point):
+                continue
             try:
                 analysis = await self.analyzer.analyze(
                     {
@@ -156,6 +163,50 @@ class MonitorRunner:
         ]
         for key in expired:
             self._notified_keys.pop(key, None)
+
+
+def _trade_action_point(
+    signal: Signal,
+    quote: MarketQuote | None,
+    payload: dict[str, Any],
+) -> TradeActionPoint | None:
+    review = signal.llm_review
+    if review is None or review.action not in {SignalAction.BUY, SignalAction.SELL}:
+        return None
+    price = _signal_price(signal, quote, payload)
+    if price is None:
+        return None
+    return TradeActionPoint(
+        id=signal_notification_key(signal),
+        symbol=signal.symbol,
+        timestamp=signal.timestamp,
+        action=review.action.value,
+        price=price,
+    )
+
+
+def _signal_price(
+    signal: Signal,
+    quote: MarketQuote | None,
+    payload: dict[str, Any],
+) -> float | None:
+    for candle in _iter_payload_candles(payload):
+        if candle.get("symbol") == signal.symbol and candle.get("timestamp") == signal.timestamp.isoformat():
+            close = candle.get("close")
+            return float(close) if close is not None else None
+    return quote.latest if quote else None
+
+
+def _iter_payload_candles(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    candles = payload.get("candles")
+    if isinstance(candles, list):
+        return [item for item in candles if isinstance(item, dict)]
+    chart_series = payload.get("chart_series")
+    if isinstance(chart_series, dict):
+        one_minute = chart_series.get("one_minute")
+        if isinstance(one_minute, list):
+            return [item for item in one_minute if isinstance(item, dict)]
+    return []
 
 
 def is_ashare_trading_time(now: datetime) -> bool:

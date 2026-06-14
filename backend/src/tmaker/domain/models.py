@@ -3,10 +3,11 @@ from __future__ import annotations
 from datetime import date
 from datetime import datetime
 from enum import StrEnum
-from itertools import groupby
 from typing import Iterable
 
 from pydantic import BaseModel, Field, computed_field
+
+from tmaker.strategy.t_pairing import TradeActionPoint, select_open_reprice_pairs
 
 
 class SignalKind(StrEnum):
@@ -185,28 +186,28 @@ def build_trade_confirmation_stats(
     trade_date: date,
 ) -> TradeConfirmationStats:
     scoped = [item for item in confirmations if item.trade_date == trade_date]
-    sorted_items = sorted(scoped, key=lambda item: (item.symbol, item.signal_timestamp, item.created_at))
-    pairs: list[TradeConfirmationPair] = []
-    unpaired: list[TradeConfirmation] = []
-
-    for symbol, symbol_items_iter in groupby(sorted_items, key=lambda item: item.symbol):
-        pending_buys: list[TradeConfirmation] = []
-        pending_sells: list[TradeConfirmation] = []
-        for item in symbol_items_iter:
-            if item.confirm_action == TradeConfirmationAction.BUY:
-                if pending_sells:
-                    sell = pending_sells.pop(0)
-                    pairs.append(_confirmation_pair(symbol, buy=item, sell=sell))
-                else:
-                    pending_buys.append(item)
-            else:
-                if pending_buys:
-                    buy = pending_buys.pop(0)
-                    pairs.append(_confirmation_pair(symbol, buy=buy, sell=item))
-                else:
-                    pending_sells.append(item)
-        unpaired.extend(pending_buys)
-        unpaired.extend(pending_sells)
+    confirmations_by_id = {item.id: item for item in scoped}
+    pairing = select_open_reprice_pairs(
+        [
+            TradeActionPoint(
+                id=item.id,
+                symbol=item.symbol,
+                timestamp=item.signal_timestamp,
+                action=item.confirm_action.value,
+                price=item.price,
+            )
+            for item in scoped
+        ]
+    )
+    pairs = [
+        _confirmation_pair(
+            pair.symbol,
+            buy=confirmations_by_id[pair.buy.id],
+            sell=confirmations_by_id[pair.sell.id],
+        )
+        for pair in pairing.pairs
+    ]
+    unpaired = [confirmations_by_id[point.id] for point in pairing.unpaired]
 
     total_pnl = round(sum(pair.pnl for pair in pairs), 2)
     return TradeConfirmationStats(

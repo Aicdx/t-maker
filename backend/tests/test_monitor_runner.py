@@ -47,16 +47,21 @@ def _quote() -> MarketQuote:
     )
 
 
+def _quote_at(price: float) -> MarketQuote:
+    return _quote().model_copy(update={"latest": price})
+
+
 class FakeSnapshotService:
-    def __init__(self, signals: list[Signal]) -> None:
+    def __init__(self, signals: list[Signal], quote: MarketQuote | None = None) -> None:
         self.signals = signals
+        self.quote = quote or _quote()
         self.calls = 0
 
     def refresh(self) -> dict:
         self.calls += 1
         return {
             "signals": [signal.model_dump(mode="json") for signal in self.signals],
-            "quotes": {"300308": _quote().model_dump(mode="json")},
+            "quotes": {"300308": self.quote.model_dump(mode="json")},
             "candles": [],
             "chart_series": {"realtime": [], "one_minute": [], "five_minute": []},
             "positions": [],
@@ -73,14 +78,20 @@ class FakeSnapshotService:
 
 
 class SequenceSnapshotService:
-    def __init__(self, signal_batches: list[list[Signal]]) -> None:
+    def __init__(
+        self,
+        signal_batches: list[list[Signal]],
+        quotes: list[MarketQuote] | None = None,
+    ) -> None:
         self.signal_batches = signal_batches
+        self.quotes = quotes or [_quote()]
         self.calls = 0
 
     def refresh(self) -> dict:
         index = min(self.calls, len(self.signal_batches) - 1)
+        quote_index = min(self.calls, len(self.quotes) - 1)
         self.calls += 1
-        return FakeSnapshotService(self.signal_batches[index]).refresh()
+        return FakeSnapshotService(self.signal_batches[index], self.quotes[quote_index]).refresh()
 
 
 class AsyncioRunSnapshotService:
@@ -223,6 +234,48 @@ async def test_tick_deduplicates_repeated_signal() -> None:
     await runner.tick(now=datetime(2026, 6, 9, 10, 25), force=True)
 
     assert runner.state.notification_count == 1
+
+
+@pytest.mark.asyncio
+async def test_tick_reprices_same_direction_open_and_waits_for_close_floor() -> None:
+    buy_open = _signal(datetime(2026, 6, 9, 10, 1))
+    buy_better = _signal(datetime(2026, 6, 9, 10, 2))
+    sell_too_close = _signal(
+        datetime(2026, 6, 9, 10, 3)
+    ).model_copy(
+        update={
+            "kind": SignalKind.CANDIDATE_SELL,
+            "action": SignalAction.SELL,
+            "llm_review": buy_open.llm_review.model_copy(update={"action": SignalAction.SELL}),
+        }
+    )
+    sell_close = sell_too_close.model_copy(update={"timestamp": datetime(2026, 6, 9, 13, 1)})
+    snapshot = SequenceSnapshotService(
+        [[buy_open], [buy_better], [sell_too_close], [sell_close]],
+        [_quote_at(100.0), _quote_at(98.0), _quote_at(98.7), _quote_at(99.1)],
+    )
+    analyzer = FakeAnalyzer()
+    notifier = FakeNotifier()
+    runner = MonitorRunner(
+        snapshot_service=snapshot,
+        analyzer=analyzer,
+        notifier=notifier,
+        policy=MonitorPolicy(min_ai_confidence=0.6),
+    )
+
+    await runner.tick(now=datetime(2026, 6, 9, 10, 1), force=True)
+    await runner.tick(now=datetime(2026, 6, 9, 10, 2), force=True)
+    await runner.tick(now=datetime(2026, 6, 9, 10, 3), force=True)
+    await runner.tick(now=datetime(2026, 6, 9, 13, 1), force=True)
+
+    assert runner.state.notification_count == 3
+    assert len(analyzer.calls) == 3
+    assert [call["signal"]["timestamp"] for call in analyzer.calls] == [
+        "2026-06-09T10:01:00",
+        "2026-06-09T10:02:00",
+        "2026-06-09T13:01:00",
+    ]
+    assert "时间：10:03" not in "\n".join(notifier.messages)
 
 
 @pytest.mark.asyncio

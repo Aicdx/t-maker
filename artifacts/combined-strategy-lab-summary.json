@@ -1,0 +1,3273 @@
+{
+  "source_artifact": "D:\\it\\t-maker\\artifacts\\ai-replay-300502-300308-2026-05-08_2026-06-12.json",
+  "quantity_per_action": 100,
+  "max_actions_per_symbol_day": 4,
+  "max_pairs_per_symbol_day": 2,
+  "notes": [
+    "This lab is read-only and does not call Feishu or the live monitor.",
+    "best_pair_reference uses same-day lookahead and is a potential ceiling, not directly live-safe.",
+    "close_floor variants only close an opened T pair when the observed opposite signal reaches the spread floor.",
+    "open_reprice variants treat same-direction signals before the opposite side as a watchlist and keep the better opening price.",
+    "directional_close_watch waits longer on buy->sell profit taking, but restores after sell->buy once about 1% spread is available."
+  ],
+  "strategies": [
+    {
+      "name": "original_first_close_raw",
+      "symbol": "ALL",
+      "paired_trade_count": 10,
+      "success_count": 8,
+      "success_rate_pct": 80.0,
+      "total_pnl_gross": 15108.0,
+      "average_spread_per_pair": 15.108,
+      "average_pnl_per_pair": 1510.8,
+      "by_symbol": [
+        {
+          "symbol": "300308",
+          "paired_trade_count": 5,
+          "success_count": 5,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 13441.0,
+          "average_spread_per_pair": 26.882,
+          "average_pnl_per_pair": 2688.2
+        },
+        {
+          "symbol": "300502",
+          "paired_trade_count": 5,
+          "success_count": 3,
+          "success_rate_pct": 60.0,
+          "total_pnl_gross": 1667.0,
+          "average_spread_per_pair": 3.334,
+          "average_pnl_per_pair": 333.4
+        }
+      ],
+      "blocked_eligible_count": 0,
+      "blocked_eligible_points": [],
+      "pairs": [
+        {
+          "date": "2026-05-18",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:04",
+          "buy_price": 1045.18,
+          "buy_confidence": 0.54,
+          "sell_time": "09:57",
+          "sell_price": 1071.99,
+          "sell_confidence": 0.62,
+          "spread": 26.81,
+          "spread_pct": 2.501,
+          "pnl": 2681.0
+        },
+        {
+          "date": "2026-05-27",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "13:43",
+          "buy_price": 1105.15,
+          "buy_confidence": 0.55,
+          "sell_time": "10:11",
+          "sell_price": 1131.58,
+          "sell_confidence": 0.65,
+          "spread": 26.43,
+          "spread_pct": 2.3357,
+          "pnl": 2643.0
+        },
+        {
+          "date": "2026-05-29",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:12",
+          "buy_price": 1170.28,
+          "buy_confidence": 0.55,
+          "sell_time": "10:28",
+          "sell_price": 1177.22,
+          "sell_confidence": 0.62,
+          "spread": 6.94,
+          "spread_pct": 0.5895,
+          "pnl": 694.0
+        },
+        {
+          "date": "2026-06-09",
+          "symbol": "300308",
+          "order": "buy->sell",
+          "buy_time": "10:22",
+          "buy_price": 1138.74,
+          "buy_confidence": 0.56,
+          "sell_time": "13:46",
+          "sell_price": 1186.62,
+          "sell_confidence": 0.61,
+          "spread": 47.88,
+          "spread_pct": 4.2046,
+          "pnl": 4788.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "14:46",
+          "buy_price": 1138.05,
+          "buy_confidence": 0.54,
+          "sell_time": "09:50",
+          "sell_price": 1164.4,
+          "sell_confidence": 0.63,
+          "spread": 26.35,
+          "spread_pct": 2.263,
+          "pnl": 2635.0
+        },
+        {
+          "date": "2026-05-13",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "09:59",
+          "buy_price": 586.4,
+          "buy_confidence": 0.56,
+          "sell_time": "10:21",
+          "sell_price": 599.88,
+          "sell_confidence": 0.62,
+          "spread": 13.48,
+          "spread_pct": 2.2988,
+          "pnl": 1348.0
+        },
+        {
+          "date": "2026-05-14",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "10:14",
+          "buy_price": 624.0,
+          "buy_confidence": 0.55,
+          "sell_time": "14:00",
+          "sell_price": 623.9,
+          "sell_confidence": 0.62,
+          "spread": -0.1,
+          "spread_pct": -0.016,
+          "pnl": -10.0
+        },
+        {
+          "date": "2026-05-19",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "10:50",
+          "buy_price": 564.29,
+          "buy_confidence": 0.54,
+          "sell_time": "13:31",
+          "sell_price": 571.09,
+          "sell_confidence": 0.7,
+          "spread": 6.8,
+          "spread_pct": 1.2051,
+          "pnl": 680.0
+        },
+        {
+          "date": "2026-06-11",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "11:22",
+          "buy_price": 530.87,
+          "buy_confidence": 0.54,
+          "sell_time": "14:36",
+          "sell_price": 521.52,
+          "sell_confidence": 0.72,
+          "spread": -9.35,
+          "spread_pct": -1.7613,
+          "pnl": -935.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300502",
+          "order": "sell->buy",
+          "buy_time": "10:03",
+          "buy_price": 517.12,
+          "buy_confidence": 0.54,
+          "sell_time": "09:53",
+          "sell_price": 522.96,
+          "sell_confidence": 0.62,
+          "spread": 5.84,
+          "spread_pct": 1.1167,
+          "pnl": 584.0
+        }
+      ]
+    },
+    {
+      "name": "stock_specific_first_close_raw",
+      "symbol": "ALL",
+      "paired_trade_count": 9,
+      "success_count": 9,
+      "success_rate_pct": 100.0,
+      "total_pnl_gross": 17861.0,
+      "average_spread_per_pair": 19.8456,
+      "average_pnl_per_pair": 1984.56,
+      "by_symbol": [
+        {
+          "symbol": "300308",
+          "paired_trade_count": 5,
+          "success_count": 5,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 13441.0,
+          "average_spread_per_pair": 26.882,
+          "average_pnl_per_pair": 2688.2
+        },
+        {
+          "symbol": "300502",
+          "paired_trade_count": 4,
+          "success_count": 4,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 4420.0,
+          "average_spread_per_pair": 11.05,
+          "average_pnl_per_pair": 1105.0
+        }
+      ],
+      "blocked_eligible_count": 2,
+      "blocked_eligible_points": [
+        {
+          "symbol": "300502",
+          "date": "2026-05-14",
+          "time": "10:14",
+          "llm_action": "buy",
+          "price": 624.0,
+          "llm_confidence": 0.55,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        },
+        {
+          "symbol": "300502",
+          "date": "2026-06-11",
+          "time": "11:22",
+          "llm_action": "buy",
+          "price": 530.87,
+          "llm_confidence": 0.54,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        }
+      ],
+      "pairs": [
+        {
+          "date": "2026-05-18",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:04",
+          "buy_price": 1045.18,
+          "buy_confidence": 0.54,
+          "sell_time": "09:57",
+          "sell_price": 1071.99,
+          "sell_confidence": 0.62,
+          "spread": 26.81,
+          "spread_pct": 2.501,
+          "pnl": 2681.0
+        },
+        {
+          "date": "2026-05-27",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "13:43",
+          "buy_price": 1105.15,
+          "buy_confidence": 0.55,
+          "sell_time": "10:11",
+          "sell_price": 1131.58,
+          "sell_confidence": 0.65,
+          "spread": 26.43,
+          "spread_pct": 2.3357,
+          "pnl": 2643.0
+        },
+        {
+          "date": "2026-05-29",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:12",
+          "buy_price": 1170.28,
+          "buy_confidence": 0.55,
+          "sell_time": "10:28",
+          "sell_price": 1177.22,
+          "sell_confidence": 0.62,
+          "spread": 6.94,
+          "spread_pct": 0.5895,
+          "pnl": 694.0
+        },
+        {
+          "date": "2026-06-09",
+          "symbol": "300308",
+          "order": "buy->sell",
+          "buy_time": "10:22",
+          "buy_price": 1138.74,
+          "buy_confidence": 0.56,
+          "sell_time": "13:46",
+          "sell_price": 1186.62,
+          "sell_confidence": 0.61,
+          "spread": 47.88,
+          "spread_pct": 4.2046,
+          "pnl": 4788.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "14:46",
+          "buy_price": 1138.05,
+          "buy_confidence": 0.54,
+          "sell_time": "09:50",
+          "sell_price": 1164.4,
+          "sell_confidence": 0.63,
+          "spread": 26.35,
+          "spread_pct": 2.263,
+          "pnl": 2635.0
+        },
+        {
+          "date": "2026-05-13",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "09:59",
+          "buy_price": 586.4,
+          "buy_confidence": 0.56,
+          "sell_time": "10:21",
+          "sell_price": 599.88,
+          "sell_confidence": 0.62,
+          "spread": 13.48,
+          "spread_pct": 2.2988,
+          "pnl": 1348.0
+        },
+        {
+          "date": "2026-05-19",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "10:50",
+          "buy_price": 564.29,
+          "buy_confidence": 0.54,
+          "sell_time": "13:31",
+          "sell_price": 571.09,
+          "sell_confidence": 0.7,
+          "spread": 6.8,
+          "spread_pct": 1.2051,
+          "pnl": 680.0
+        },
+        {
+          "date": "2026-06-11",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "14:14",
+          "buy_price": 503.44,
+          "buy_confidence": 0.54,
+          "sell_time": "14:36",
+          "sell_price": 521.52,
+          "sell_confidence": 0.72,
+          "spread": 18.08,
+          "spread_pct": 3.5913,
+          "pnl": 1808.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300502",
+          "order": "sell->buy",
+          "buy_time": "10:03",
+          "buy_price": 517.12,
+          "buy_confidence": 0.54,
+          "sell_time": "09:53",
+          "sell_price": 522.96,
+          "sell_confidence": 0.62,
+          "spread": 5.84,
+          "spread_pct": 1.1167,
+          "pnl": 584.0
+        }
+      ]
+    },
+    {
+      "name": "stock_specific_open_reprice_raw",
+      "symbol": "ALL",
+      "paired_trade_count": 9,
+      "success_count": 9,
+      "success_rate_pct": 100.0,
+      "total_pnl_gross": 20385.0,
+      "average_spread_per_pair": 22.65,
+      "average_pnl_per_pair": 2265.0,
+      "by_symbol": [
+        {
+          "symbol": "300308",
+          "paired_trade_count": 5,
+          "success_count": 5,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 15965.0,
+          "average_spread_per_pair": 31.93,
+          "average_pnl_per_pair": 3193.0
+        },
+        {
+          "symbol": "300502",
+          "paired_trade_count": 4,
+          "success_count": 4,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 4420.0,
+          "average_spread_per_pair": 11.05,
+          "average_pnl_per_pair": 1105.0
+        }
+      ],
+      "blocked_eligible_count": 2,
+      "blocked_eligible_points": [
+        {
+          "symbol": "300502",
+          "date": "2026-05-14",
+          "time": "10:14",
+          "llm_action": "buy",
+          "price": 624.0,
+          "llm_confidence": 0.55,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        },
+        {
+          "symbol": "300502",
+          "date": "2026-06-11",
+          "time": "11:22",
+          "llm_action": "buy",
+          "price": 530.87,
+          "llm_confidence": 0.54,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        }
+      ],
+      "pairs": [
+        {
+          "date": "2026-05-18",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:04",
+          "buy_price": 1045.18,
+          "buy_confidence": 0.54,
+          "sell_time": "09:57",
+          "sell_price": 1071.99,
+          "sell_confidence": 0.62,
+          "spread": 26.81,
+          "spread_pct": 2.501,
+          "pnl": 2681.0
+        },
+        {
+          "date": "2026-05-27",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "13:43",
+          "buy_price": 1105.15,
+          "buy_confidence": 0.55,
+          "sell_time": "10:11",
+          "sell_price": 1131.58,
+          "sell_confidence": 0.65,
+          "spread": 26.43,
+          "spread_pct": 2.3357,
+          "pnl": 2643.0
+        },
+        {
+          "date": "2026-05-29",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:12",
+          "buy_price": 1170.28,
+          "buy_confidence": 0.55,
+          "sell_time": "10:37",
+          "sell_price": 1198.0,
+          "sell_confidence": 0.67,
+          "spread": 27.72,
+          "spread_pct": 2.3139,
+          "pnl": 2772.0
+        },
+        {
+          "date": "2026-06-09",
+          "symbol": "300308",
+          "order": "buy->sell",
+          "buy_time": "10:22",
+          "buy_price": 1138.74,
+          "buy_confidence": 0.56,
+          "sell_time": "13:46",
+          "sell_price": 1186.62,
+          "sell_confidence": 0.61,
+          "spread": 47.88,
+          "spread_pct": 4.2046,
+          "pnl": 4788.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "14:46",
+          "buy_price": 1138.05,
+          "buy_confidence": 0.54,
+          "sell_time": "13:24",
+          "sell_price": 1168.86,
+          "sell_confidence": 0.66,
+          "spread": 30.81,
+          "spread_pct": 2.6359,
+          "pnl": 3081.0
+        },
+        {
+          "date": "2026-05-13",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "09:59",
+          "buy_price": 586.4,
+          "buy_confidence": 0.56,
+          "sell_time": "10:21",
+          "sell_price": 599.88,
+          "sell_confidence": 0.62,
+          "spread": 13.48,
+          "spread_pct": 2.2988,
+          "pnl": 1348.0
+        },
+        {
+          "date": "2026-05-19",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "10:50",
+          "buy_price": 564.29,
+          "buy_confidence": 0.54,
+          "sell_time": "13:31",
+          "sell_price": 571.09,
+          "sell_confidence": 0.7,
+          "spread": 6.8,
+          "spread_pct": 1.2051,
+          "pnl": 680.0
+        },
+        {
+          "date": "2026-06-11",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "14:14",
+          "buy_price": 503.44,
+          "buy_confidence": 0.54,
+          "sell_time": "14:36",
+          "sell_price": 521.52,
+          "sell_confidence": 0.72,
+          "spread": 18.08,
+          "spread_pct": 3.5913,
+          "pnl": 1808.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300502",
+          "order": "sell->buy",
+          "buy_time": "10:03",
+          "buy_price": 517.12,
+          "buy_confidence": 0.54,
+          "sell_time": "09:53",
+          "sell_price": 522.96,
+          "sell_confidence": 0.62,
+          "spread": 5.84,
+          "spread_pct": 1.1167,
+          "pnl": 584.0
+        }
+      ]
+    },
+    {
+      "name": "stock_specific_open_reprice_directional_close_watch",
+      "symbol": "ALL",
+      "paired_trade_count": 9,
+      "success_count": 9,
+      "success_rate_pct": 100.0,
+      "total_pnl_gross": 21419.0,
+      "average_spread_per_pair": 23.7989,
+      "average_pnl_per_pair": 2379.89,
+      "by_symbol": [
+        {
+          "symbol": "300308",
+          "paired_trade_count": 5,
+          "success_count": 5,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 15965.0,
+          "average_spread_per_pair": 31.93,
+          "average_pnl_per_pair": 3193.0
+        },
+        {
+          "symbol": "300502",
+          "paired_trade_count": 4,
+          "success_count": 4,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 5454.0,
+          "average_spread_per_pair": 13.635,
+          "average_pnl_per_pair": 1363.5
+        }
+      ],
+      "blocked_eligible_count": 2,
+      "blocked_eligible_points": [
+        {
+          "symbol": "300502",
+          "date": "2026-05-14",
+          "time": "10:14",
+          "llm_action": "buy",
+          "price": 624.0,
+          "llm_confidence": 0.55,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        },
+        {
+          "symbol": "300502",
+          "date": "2026-06-11",
+          "time": "11:22",
+          "llm_action": "buy",
+          "price": 530.87,
+          "llm_confidence": 0.54,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        }
+      ],
+      "pairs": [
+        {
+          "date": "2026-05-18",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:04",
+          "buy_price": 1045.18,
+          "buy_confidence": 0.54,
+          "sell_time": "09:57",
+          "sell_price": 1071.99,
+          "sell_confidence": 0.62,
+          "spread": 26.81,
+          "spread_pct": 2.501,
+          "pnl": 2681.0
+        },
+        {
+          "date": "2026-05-27",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "13:43",
+          "buy_price": 1105.15,
+          "buy_confidence": 0.55,
+          "sell_time": "10:11",
+          "sell_price": 1131.58,
+          "sell_confidence": 0.65,
+          "spread": 26.43,
+          "spread_pct": 2.3357,
+          "pnl": 2643.0
+        },
+        {
+          "date": "2026-05-29",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:12",
+          "buy_price": 1170.28,
+          "buy_confidence": 0.55,
+          "sell_time": "10:37",
+          "sell_price": 1198.0,
+          "sell_confidence": 0.67,
+          "spread": 27.72,
+          "spread_pct": 2.3139,
+          "pnl": 2772.0
+        },
+        {
+          "date": "2026-06-09",
+          "symbol": "300308",
+          "order": "buy->sell",
+          "buy_time": "10:22",
+          "buy_price": 1138.74,
+          "buy_confidence": 0.56,
+          "sell_time": "13:46",
+          "sell_price": 1186.62,
+          "sell_confidence": 0.61,
+          "spread": 47.88,
+          "spread_pct": 4.2046,
+          "pnl": 4788.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "14:46",
+          "buy_price": 1138.05,
+          "buy_confidence": 0.54,
+          "sell_time": "13:24",
+          "sell_price": 1168.86,
+          "sell_confidence": 0.66,
+          "spread": 30.81,
+          "spread_pct": 2.6359,
+          "pnl": 3081.0
+        },
+        {
+          "date": "2026-05-13",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "09:59",
+          "buy_price": 586.4,
+          "buy_confidence": 0.56,
+          "sell_time": "13:01",
+          "sell_price": 610.22,
+          "sell_confidence": 0.62,
+          "spread": 23.82,
+          "spread_pct": 4.0621,
+          "pnl": 2382.0
+        },
+        {
+          "date": "2026-05-19",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "10:50",
+          "buy_price": 564.29,
+          "buy_confidence": 0.54,
+          "sell_time": "13:31",
+          "sell_price": 571.09,
+          "sell_confidence": 0.7,
+          "spread": 6.8,
+          "spread_pct": 1.2051,
+          "pnl": 680.0
+        },
+        {
+          "date": "2026-06-11",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "14:14",
+          "buy_price": 503.44,
+          "buy_confidence": 0.54,
+          "sell_time": "14:36",
+          "sell_price": 521.52,
+          "sell_confidence": 0.72,
+          "spread": 18.08,
+          "spread_pct": 3.5913,
+          "pnl": 1808.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300502",
+          "order": "sell->buy",
+          "buy_time": "10:03",
+          "buy_price": 517.12,
+          "buy_confidence": 0.54,
+          "sell_time": "09:53",
+          "sell_price": 522.96,
+          "sell_confidence": 0.62,
+          "spread": 5.84,
+          "spread_pct": 1.1167,
+          "pnl": 584.0
+        }
+      ]
+    },
+    {
+      "name": "stock_specific_best_pair_reference",
+      "symbol": "ALL",
+      "paired_trade_count": 9,
+      "success_count": 9,
+      "success_rate_pct": 100.0,
+      "total_pnl_gross": 21720.0,
+      "average_spread_per_pair": 24.1333,
+      "average_pnl_per_pair": 2413.33,
+      "by_symbol": [
+        {
+          "symbol": "300308",
+          "paired_trade_count": 5,
+          "success_count": 5,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 16266.0,
+          "average_spread_per_pair": 32.532,
+          "average_pnl_per_pair": 3253.2
+        },
+        {
+          "symbol": "300502",
+          "paired_trade_count": 4,
+          "success_count": 4,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 5454.0,
+          "average_spread_per_pair": 13.635,
+          "average_pnl_per_pair": 1363.5
+        }
+      ],
+      "blocked_eligible_count": 2,
+      "blocked_eligible_points": [
+        {
+          "symbol": "300502",
+          "date": "2026-05-14",
+          "time": "10:14",
+          "llm_action": "buy",
+          "price": 624.0,
+          "llm_confidence": 0.55,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        },
+        {
+          "symbol": "300502",
+          "date": "2026-06-11",
+          "time": "11:22",
+          "llm_action": "buy",
+          "price": 530.87,
+          "llm_confidence": 0.54,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        }
+      ],
+      "pairs": [
+        {
+          "date": "2026-05-18",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "13:19",
+          "buy_price": 1042.17,
+          "buy_confidence": 0.55,
+          "sell_time": "09:57",
+          "sell_price": 1071.99,
+          "sell_confidence": 0.62,
+          "spread": 29.82,
+          "spread_pct": 2.7817,
+          "pnl": 2982.0
+        },
+        {
+          "date": "2026-05-27",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "13:43",
+          "buy_price": 1105.15,
+          "buy_confidence": 0.55,
+          "sell_time": "10:11",
+          "sell_price": 1131.58,
+          "sell_confidence": 0.65,
+          "spread": 26.43,
+          "spread_pct": 2.3357,
+          "pnl": 2643.0
+        },
+        {
+          "date": "2026-05-29",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:12",
+          "buy_price": 1170.28,
+          "buy_confidence": 0.55,
+          "sell_time": "10:37",
+          "sell_price": 1198.0,
+          "sell_confidence": 0.67,
+          "spread": 27.72,
+          "spread_pct": 2.3139,
+          "pnl": 2772.0
+        },
+        {
+          "date": "2026-06-09",
+          "symbol": "300308",
+          "order": "buy->sell",
+          "buy_time": "10:22",
+          "buy_price": 1138.74,
+          "buy_confidence": 0.56,
+          "sell_time": "13:46",
+          "sell_price": 1186.62,
+          "sell_confidence": 0.61,
+          "spread": 47.88,
+          "spread_pct": 4.2046,
+          "pnl": 4788.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "14:46",
+          "buy_price": 1138.05,
+          "buy_confidence": 0.54,
+          "sell_time": "13:24",
+          "sell_price": 1168.86,
+          "sell_confidence": 0.66,
+          "spread": 30.81,
+          "spread_pct": 2.6359,
+          "pnl": 3081.0
+        },
+        {
+          "date": "2026-05-13",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "09:59",
+          "buy_price": 586.4,
+          "buy_confidence": 0.56,
+          "sell_time": "13:01",
+          "sell_price": 610.22,
+          "sell_confidence": 0.62,
+          "spread": 23.82,
+          "spread_pct": 4.0621,
+          "pnl": 2382.0
+        },
+        {
+          "date": "2026-05-19",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "10:50",
+          "buy_price": 564.29,
+          "buy_confidence": 0.54,
+          "sell_time": "13:31",
+          "sell_price": 571.09,
+          "sell_confidence": 0.7,
+          "spread": 6.8,
+          "spread_pct": 1.2051,
+          "pnl": 680.0
+        },
+        {
+          "date": "2026-06-11",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "14:14",
+          "buy_price": 503.44,
+          "buy_confidence": 0.54,
+          "sell_time": "14:36",
+          "sell_price": 521.52,
+          "sell_confidence": 0.72,
+          "spread": 18.08,
+          "spread_pct": 3.5913,
+          "pnl": 1808.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300502",
+          "order": "sell->buy",
+          "buy_time": "10:03",
+          "buy_price": 517.12,
+          "buy_confidence": 0.54,
+          "sell_time": "09:53",
+          "sell_price": 522.96,
+          "sell_confidence": 0.62,
+          "spread": 5.84,
+          "spread_pct": 1.1167,
+          "pnl": 584.0
+        }
+      ]
+    },
+    {
+      "name": "stock_specific_close_floor_0.0pct",
+      "symbol": "ALL",
+      "paired_trade_count": 9,
+      "success_count": 9,
+      "success_rate_pct": 100.0,
+      "total_pnl_gross": 17861.0,
+      "average_spread_per_pair": 19.8456,
+      "average_pnl_per_pair": 1984.56,
+      "by_symbol": [
+        {
+          "symbol": "300308",
+          "paired_trade_count": 5,
+          "success_count": 5,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 13441.0,
+          "average_spread_per_pair": 26.882,
+          "average_pnl_per_pair": 2688.2
+        },
+        {
+          "symbol": "300502",
+          "paired_trade_count": 4,
+          "success_count": 4,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 4420.0,
+          "average_spread_per_pair": 11.05,
+          "average_pnl_per_pair": 1105.0
+        }
+      ],
+      "blocked_eligible_count": 2,
+      "blocked_eligible_points": [
+        {
+          "symbol": "300502",
+          "date": "2026-05-14",
+          "time": "10:14",
+          "llm_action": "buy",
+          "price": 624.0,
+          "llm_confidence": 0.55,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        },
+        {
+          "symbol": "300502",
+          "date": "2026-06-11",
+          "time": "11:22",
+          "llm_action": "buy",
+          "price": 530.87,
+          "llm_confidence": 0.54,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        }
+      ],
+      "pairs": [
+        {
+          "date": "2026-05-18",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:04",
+          "buy_price": 1045.18,
+          "buy_confidence": 0.54,
+          "sell_time": "09:57",
+          "sell_price": 1071.99,
+          "sell_confidence": 0.62,
+          "spread": 26.81,
+          "spread_pct": 2.501,
+          "pnl": 2681.0
+        },
+        {
+          "date": "2026-05-27",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "13:43",
+          "buy_price": 1105.15,
+          "buy_confidence": 0.55,
+          "sell_time": "10:11",
+          "sell_price": 1131.58,
+          "sell_confidence": 0.65,
+          "spread": 26.43,
+          "spread_pct": 2.3357,
+          "pnl": 2643.0
+        },
+        {
+          "date": "2026-05-29",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:12",
+          "buy_price": 1170.28,
+          "buy_confidence": 0.55,
+          "sell_time": "10:28",
+          "sell_price": 1177.22,
+          "sell_confidence": 0.62,
+          "spread": 6.94,
+          "spread_pct": 0.5895,
+          "pnl": 694.0
+        },
+        {
+          "date": "2026-06-09",
+          "symbol": "300308",
+          "order": "buy->sell",
+          "buy_time": "10:22",
+          "buy_price": 1138.74,
+          "buy_confidence": 0.56,
+          "sell_time": "13:46",
+          "sell_price": 1186.62,
+          "sell_confidence": 0.61,
+          "spread": 47.88,
+          "spread_pct": 4.2046,
+          "pnl": 4788.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "14:46",
+          "buy_price": 1138.05,
+          "buy_confidence": 0.54,
+          "sell_time": "09:50",
+          "sell_price": 1164.4,
+          "sell_confidence": 0.63,
+          "spread": 26.35,
+          "spread_pct": 2.263,
+          "pnl": 2635.0
+        },
+        {
+          "date": "2026-05-13",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "09:59",
+          "buy_price": 586.4,
+          "buy_confidence": 0.56,
+          "sell_time": "10:21",
+          "sell_price": 599.88,
+          "sell_confidence": 0.62,
+          "spread": 13.48,
+          "spread_pct": 2.2988,
+          "pnl": 1348.0
+        },
+        {
+          "date": "2026-05-19",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "10:50",
+          "buy_price": 564.29,
+          "buy_confidence": 0.54,
+          "sell_time": "13:31",
+          "sell_price": 571.09,
+          "sell_confidence": 0.7,
+          "spread": 6.8,
+          "spread_pct": 1.2051,
+          "pnl": 680.0
+        },
+        {
+          "date": "2026-06-11",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "14:14",
+          "buy_price": 503.44,
+          "buy_confidence": 0.54,
+          "sell_time": "14:36",
+          "sell_price": 521.52,
+          "sell_confidence": 0.72,
+          "spread": 18.08,
+          "spread_pct": 3.5913,
+          "pnl": 1808.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300502",
+          "order": "sell->buy",
+          "buy_time": "10:03",
+          "buy_price": 517.12,
+          "buy_confidence": 0.54,
+          "sell_time": "09:53",
+          "sell_price": 522.96,
+          "sell_confidence": 0.62,
+          "spread": 5.84,
+          "spread_pct": 1.1167,
+          "pnl": 584.0
+        }
+      ]
+    },
+    {
+      "name": "stock_specific_open_reprice_close_floor_0.0pct",
+      "symbol": "ALL",
+      "paired_trade_count": 9,
+      "success_count": 9,
+      "success_rate_pct": 100.0,
+      "total_pnl_gross": 20385.0,
+      "average_spread_per_pair": 22.65,
+      "average_pnl_per_pair": 2265.0,
+      "by_symbol": [
+        {
+          "symbol": "300308",
+          "paired_trade_count": 5,
+          "success_count": 5,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 15965.0,
+          "average_spread_per_pair": 31.93,
+          "average_pnl_per_pair": 3193.0
+        },
+        {
+          "symbol": "300502",
+          "paired_trade_count": 4,
+          "success_count": 4,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 4420.0,
+          "average_spread_per_pair": 11.05,
+          "average_pnl_per_pair": 1105.0
+        }
+      ],
+      "blocked_eligible_count": 2,
+      "blocked_eligible_points": [
+        {
+          "symbol": "300502",
+          "date": "2026-05-14",
+          "time": "10:14",
+          "llm_action": "buy",
+          "price": 624.0,
+          "llm_confidence": 0.55,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        },
+        {
+          "symbol": "300502",
+          "date": "2026-06-11",
+          "time": "11:22",
+          "llm_action": "buy",
+          "price": 530.87,
+          "llm_confidence": 0.54,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        }
+      ],
+      "pairs": [
+        {
+          "date": "2026-05-18",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:04",
+          "buy_price": 1045.18,
+          "buy_confidence": 0.54,
+          "sell_time": "09:57",
+          "sell_price": 1071.99,
+          "sell_confidence": 0.62,
+          "spread": 26.81,
+          "spread_pct": 2.501,
+          "pnl": 2681.0
+        },
+        {
+          "date": "2026-05-27",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "13:43",
+          "buy_price": 1105.15,
+          "buy_confidence": 0.55,
+          "sell_time": "10:11",
+          "sell_price": 1131.58,
+          "sell_confidence": 0.65,
+          "spread": 26.43,
+          "spread_pct": 2.3357,
+          "pnl": 2643.0
+        },
+        {
+          "date": "2026-05-29",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:12",
+          "buy_price": 1170.28,
+          "buy_confidence": 0.55,
+          "sell_time": "10:37",
+          "sell_price": 1198.0,
+          "sell_confidence": 0.67,
+          "spread": 27.72,
+          "spread_pct": 2.3139,
+          "pnl": 2772.0
+        },
+        {
+          "date": "2026-06-09",
+          "symbol": "300308",
+          "order": "buy->sell",
+          "buy_time": "10:22",
+          "buy_price": 1138.74,
+          "buy_confidence": 0.56,
+          "sell_time": "13:46",
+          "sell_price": 1186.62,
+          "sell_confidence": 0.61,
+          "spread": 47.88,
+          "spread_pct": 4.2046,
+          "pnl": 4788.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "14:46",
+          "buy_price": 1138.05,
+          "buy_confidence": 0.54,
+          "sell_time": "13:24",
+          "sell_price": 1168.86,
+          "sell_confidence": 0.66,
+          "spread": 30.81,
+          "spread_pct": 2.6359,
+          "pnl": 3081.0
+        },
+        {
+          "date": "2026-05-13",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "09:59",
+          "buy_price": 586.4,
+          "buy_confidence": 0.56,
+          "sell_time": "10:21",
+          "sell_price": 599.88,
+          "sell_confidence": 0.62,
+          "spread": 13.48,
+          "spread_pct": 2.2988,
+          "pnl": 1348.0
+        },
+        {
+          "date": "2026-05-19",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "10:50",
+          "buy_price": 564.29,
+          "buy_confidence": 0.54,
+          "sell_time": "13:31",
+          "sell_price": 571.09,
+          "sell_confidence": 0.7,
+          "spread": 6.8,
+          "spread_pct": 1.2051,
+          "pnl": 680.0
+        },
+        {
+          "date": "2026-06-11",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "14:14",
+          "buy_price": 503.44,
+          "buy_confidence": 0.54,
+          "sell_time": "14:36",
+          "sell_price": 521.52,
+          "sell_confidence": 0.72,
+          "spread": 18.08,
+          "spread_pct": 3.5913,
+          "pnl": 1808.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300502",
+          "order": "sell->buy",
+          "buy_time": "10:03",
+          "buy_price": 517.12,
+          "buy_confidence": 0.54,
+          "sell_time": "09:53",
+          "sell_price": 522.96,
+          "sell_confidence": 0.62,
+          "spread": 5.84,
+          "spread_pct": 1.1167,
+          "pnl": 584.0
+        }
+      ]
+    },
+    {
+      "name": "stock_specific_close_floor_0.5pct",
+      "symbol": "ALL",
+      "paired_trade_count": 9,
+      "success_count": 9,
+      "success_rate_pct": 100.0,
+      "total_pnl_gross": 17861.0,
+      "average_spread_per_pair": 19.8456,
+      "average_pnl_per_pair": 1984.56,
+      "by_symbol": [
+        {
+          "symbol": "300308",
+          "paired_trade_count": 5,
+          "success_count": 5,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 13441.0,
+          "average_spread_per_pair": 26.882,
+          "average_pnl_per_pair": 2688.2
+        },
+        {
+          "symbol": "300502",
+          "paired_trade_count": 4,
+          "success_count": 4,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 4420.0,
+          "average_spread_per_pair": 11.05,
+          "average_pnl_per_pair": 1105.0
+        }
+      ],
+      "blocked_eligible_count": 2,
+      "blocked_eligible_points": [
+        {
+          "symbol": "300502",
+          "date": "2026-05-14",
+          "time": "10:14",
+          "llm_action": "buy",
+          "price": 624.0,
+          "llm_confidence": 0.55,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        },
+        {
+          "symbol": "300502",
+          "date": "2026-06-11",
+          "time": "11:22",
+          "llm_action": "buy",
+          "price": 530.87,
+          "llm_confidence": 0.54,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        }
+      ],
+      "pairs": [
+        {
+          "date": "2026-05-18",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:04",
+          "buy_price": 1045.18,
+          "buy_confidence": 0.54,
+          "sell_time": "09:57",
+          "sell_price": 1071.99,
+          "sell_confidence": 0.62,
+          "spread": 26.81,
+          "spread_pct": 2.501,
+          "pnl": 2681.0
+        },
+        {
+          "date": "2026-05-27",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "13:43",
+          "buy_price": 1105.15,
+          "buy_confidence": 0.55,
+          "sell_time": "10:11",
+          "sell_price": 1131.58,
+          "sell_confidence": 0.65,
+          "spread": 26.43,
+          "spread_pct": 2.3357,
+          "pnl": 2643.0
+        },
+        {
+          "date": "2026-05-29",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:12",
+          "buy_price": 1170.28,
+          "buy_confidence": 0.55,
+          "sell_time": "10:28",
+          "sell_price": 1177.22,
+          "sell_confidence": 0.62,
+          "spread": 6.94,
+          "spread_pct": 0.5895,
+          "pnl": 694.0
+        },
+        {
+          "date": "2026-06-09",
+          "symbol": "300308",
+          "order": "buy->sell",
+          "buy_time": "10:22",
+          "buy_price": 1138.74,
+          "buy_confidence": 0.56,
+          "sell_time": "13:46",
+          "sell_price": 1186.62,
+          "sell_confidence": 0.61,
+          "spread": 47.88,
+          "spread_pct": 4.2046,
+          "pnl": 4788.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "14:46",
+          "buy_price": 1138.05,
+          "buy_confidence": 0.54,
+          "sell_time": "09:50",
+          "sell_price": 1164.4,
+          "sell_confidence": 0.63,
+          "spread": 26.35,
+          "spread_pct": 2.263,
+          "pnl": 2635.0
+        },
+        {
+          "date": "2026-05-13",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "09:59",
+          "buy_price": 586.4,
+          "buy_confidence": 0.56,
+          "sell_time": "10:21",
+          "sell_price": 599.88,
+          "sell_confidence": 0.62,
+          "spread": 13.48,
+          "spread_pct": 2.2988,
+          "pnl": 1348.0
+        },
+        {
+          "date": "2026-05-19",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "10:50",
+          "buy_price": 564.29,
+          "buy_confidence": 0.54,
+          "sell_time": "13:31",
+          "sell_price": 571.09,
+          "sell_confidence": 0.7,
+          "spread": 6.8,
+          "spread_pct": 1.2051,
+          "pnl": 680.0
+        },
+        {
+          "date": "2026-06-11",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "14:14",
+          "buy_price": 503.44,
+          "buy_confidence": 0.54,
+          "sell_time": "14:36",
+          "sell_price": 521.52,
+          "sell_confidence": 0.72,
+          "spread": 18.08,
+          "spread_pct": 3.5913,
+          "pnl": 1808.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300502",
+          "order": "sell->buy",
+          "buy_time": "10:03",
+          "buy_price": 517.12,
+          "buy_confidence": 0.54,
+          "sell_time": "09:53",
+          "sell_price": 522.96,
+          "sell_confidence": 0.62,
+          "spread": 5.84,
+          "spread_pct": 1.1167,
+          "pnl": 584.0
+        }
+      ]
+    },
+    {
+      "name": "stock_specific_open_reprice_close_floor_0.5pct",
+      "symbol": "ALL",
+      "paired_trade_count": 9,
+      "success_count": 9,
+      "success_rate_pct": 100.0,
+      "total_pnl_gross": 20385.0,
+      "average_spread_per_pair": 22.65,
+      "average_pnl_per_pair": 2265.0,
+      "by_symbol": [
+        {
+          "symbol": "300308",
+          "paired_trade_count": 5,
+          "success_count": 5,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 15965.0,
+          "average_spread_per_pair": 31.93,
+          "average_pnl_per_pair": 3193.0
+        },
+        {
+          "symbol": "300502",
+          "paired_trade_count": 4,
+          "success_count": 4,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 4420.0,
+          "average_spread_per_pair": 11.05,
+          "average_pnl_per_pair": 1105.0
+        }
+      ],
+      "blocked_eligible_count": 2,
+      "blocked_eligible_points": [
+        {
+          "symbol": "300502",
+          "date": "2026-05-14",
+          "time": "10:14",
+          "llm_action": "buy",
+          "price": 624.0,
+          "llm_confidence": 0.55,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        },
+        {
+          "symbol": "300502",
+          "date": "2026-06-11",
+          "time": "11:22",
+          "llm_action": "buy",
+          "price": 530.87,
+          "llm_confidence": 0.54,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        }
+      ],
+      "pairs": [
+        {
+          "date": "2026-05-18",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:04",
+          "buy_price": 1045.18,
+          "buy_confidence": 0.54,
+          "sell_time": "09:57",
+          "sell_price": 1071.99,
+          "sell_confidence": 0.62,
+          "spread": 26.81,
+          "spread_pct": 2.501,
+          "pnl": 2681.0
+        },
+        {
+          "date": "2026-05-27",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "13:43",
+          "buy_price": 1105.15,
+          "buy_confidence": 0.55,
+          "sell_time": "10:11",
+          "sell_price": 1131.58,
+          "sell_confidence": 0.65,
+          "spread": 26.43,
+          "spread_pct": 2.3357,
+          "pnl": 2643.0
+        },
+        {
+          "date": "2026-05-29",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:12",
+          "buy_price": 1170.28,
+          "buy_confidence": 0.55,
+          "sell_time": "10:37",
+          "sell_price": 1198.0,
+          "sell_confidence": 0.67,
+          "spread": 27.72,
+          "spread_pct": 2.3139,
+          "pnl": 2772.0
+        },
+        {
+          "date": "2026-06-09",
+          "symbol": "300308",
+          "order": "buy->sell",
+          "buy_time": "10:22",
+          "buy_price": 1138.74,
+          "buy_confidence": 0.56,
+          "sell_time": "13:46",
+          "sell_price": 1186.62,
+          "sell_confidence": 0.61,
+          "spread": 47.88,
+          "spread_pct": 4.2046,
+          "pnl": 4788.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "14:46",
+          "buy_price": 1138.05,
+          "buy_confidence": 0.54,
+          "sell_time": "13:24",
+          "sell_price": 1168.86,
+          "sell_confidence": 0.66,
+          "spread": 30.81,
+          "spread_pct": 2.6359,
+          "pnl": 3081.0
+        },
+        {
+          "date": "2026-05-13",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "09:59",
+          "buy_price": 586.4,
+          "buy_confidence": 0.56,
+          "sell_time": "10:21",
+          "sell_price": 599.88,
+          "sell_confidence": 0.62,
+          "spread": 13.48,
+          "spread_pct": 2.2988,
+          "pnl": 1348.0
+        },
+        {
+          "date": "2026-05-19",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "10:50",
+          "buy_price": 564.29,
+          "buy_confidence": 0.54,
+          "sell_time": "13:31",
+          "sell_price": 571.09,
+          "sell_confidence": 0.7,
+          "spread": 6.8,
+          "spread_pct": 1.2051,
+          "pnl": 680.0
+        },
+        {
+          "date": "2026-06-11",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "14:14",
+          "buy_price": 503.44,
+          "buy_confidence": 0.54,
+          "sell_time": "14:36",
+          "sell_price": 521.52,
+          "sell_confidence": 0.72,
+          "spread": 18.08,
+          "spread_pct": 3.5913,
+          "pnl": 1808.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300502",
+          "order": "sell->buy",
+          "buy_time": "10:03",
+          "buy_price": 517.12,
+          "buy_confidence": 0.54,
+          "sell_time": "09:53",
+          "sell_price": 522.96,
+          "sell_confidence": 0.62,
+          "spread": 5.84,
+          "spread_pct": 1.1167,
+          "pnl": 584.0
+        }
+      ]
+    },
+    {
+      "name": "stock_specific_close_floor_0.8pct",
+      "symbol": "ALL",
+      "paired_trade_count": 8,
+      "success_count": 8,
+      "success_rate_pct": 100.0,
+      "total_pnl_gross": 17167.0,
+      "average_spread_per_pair": 21.4587,
+      "average_pnl_per_pair": 2145.88,
+      "by_symbol": [
+        {
+          "symbol": "300308",
+          "paired_trade_count": 4,
+          "success_count": 4,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 12747.0,
+          "average_spread_per_pair": 31.8675,
+          "average_pnl_per_pair": 3186.75
+        },
+        {
+          "symbol": "300502",
+          "paired_trade_count": 4,
+          "success_count": 4,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 4420.0,
+          "average_spread_per_pair": 11.05,
+          "average_pnl_per_pair": 1105.0
+        }
+      ],
+      "blocked_eligible_count": 2,
+      "blocked_eligible_points": [
+        {
+          "symbol": "300502",
+          "date": "2026-05-14",
+          "time": "10:14",
+          "llm_action": "buy",
+          "price": 624.0,
+          "llm_confidence": 0.55,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        },
+        {
+          "symbol": "300502",
+          "date": "2026-06-11",
+          "time": "11:22",
+          "llm_action": "buy",
+          "price": 530.87,
+          "llm_confidence": 0.54,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        }
+      ],
+      "pairs": [
+        {
+          "date": "2026-05-18",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:04",
+          "buy_price": 1045.18,
+          "buy_confidence": 0.54,
+          "sell_time": "09:57",
+          "sell_price": 1071.99,
+          "sell_confidence": 0.62,
+          "spread": 26.81,
+          "spread_pct": 2.501,
+          "pnl": 2681.0
+        },
+        {
+          "date": "2026-05-27",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "13:43",
+          "buy_price": 1105.15,
+          "buy_confidence": 0.55,
+          "sell_time": "10:11",
+          "sell_price": 1131.58,
+          "sell_confidence": 0.65,
+          "spread": 26.43,
+          "spread_pct": 2.3357,
+          "pnl": 2643.0
+        },
+        {
+          "date": "2026-06-09",
+          "symbol": "300308",
+          "order": "buy->sell",
+          "buy_time": "10:22",
+          "buy_price": 1138.74,
+          "buy_confidence": 0.56,
+          "sell_time": "13:46",
+          "sell_price": 1186.62,
+          "sell_confidence": 0.61,
+          "spread": 47.88,
+          "spread_pct": 4.2046,
+          "pnl": 4788.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "14:46",
+          "buy_price": 1138.05,
+          "buy_confidence": 0.54,
+          "sell_time": "09:50",
+          "sell_price": 1164.4,
+          "sell_confidence": 0.63,
+          "spread": 26.35,
+          "spread_pct": 2.263,
+          "pnl": 2635.0
+        },
+        {
+          "date": "2026-05-13",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "09:59",
+          "buy_price": 586.4,
+          "buy_confidence": 0.56,
+          "sell_time": "10:21",
+          "sell_price": 599.88,
+          "sell_confidence": 0.62,
+          "spread": 13.48,
+          "spread_pct": 2.2988,
+          "pnl": 1348.0
+        },
+        {
+          "date": "2026-05-19",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "10:50",
+          "buy_price": 564.29,
+          "buy_confidence": 0.54,
+          "sell_time": "13:31",
+          "sell_price": 571.09,
+          "sell_confidence": 0.7,
+          "spread": 6.8,
+          "spread_pct": 1.2051,
+          "pnl": 680.0
+        },
+        {
+          "date": "2026-06-11",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "14:14",
+          "buy_price": 503.44,
+          "buy_confidence": 0.54,
+          "sell_time": "14:36",
+          "sell_price": 521.52,
+          "sell_confidence": 0.72,
+          "spread": 18.08,
+          "spread_pct": 3.5913,
+          "pnl": 1808.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300502",
+          "order": "sell->buy",
+          "buy_time": "10:03",
+          "buy_price": 517.12,
+          "buy_confidence": 0.54,
+          "sell_time": "09:53",
+          "sell_price": 522.96,
+          "sell_confidence": 0.62,
+          "spread": 5.84,
+          "spread_pct": 1.1167,
+          "pnl": 584.0
+        }
+      ]
+    },
+    {
+      "name": "stock_specific_open_reprice_close_floor_0.8pct",
+      "symbol": "ALL",
+      "paired_trade_count": 9,
+      "success_count": 9,
+      "success_rate_pct": 100.0,
+      "total_pnl_gross": 20385.0,
+      "average_spread_per_pair": 22.65,
+      "average_pnl_per_pair": 2265.0,
+      "by_symbol": [
+        {
+          "symbol": "300308",
+          "paired_trade_count": 5,
+          "success_count": 5,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 15965.0,
+          "average_spread_per_pair": 31.93,
+          "average_pnl_per_pair": 3193.0
+        },
+        {
+          "symbol": "300502",
+          "paired_trade_count": 4,
+          "success_count": 4,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 4420.0,
+          "average_spread_per_pair": 11.05,
+          "average_pnl_per_pair": 1105.0
+        }
+      ],
+      "blocked_eligible_count": 2,
+      "blocked_eligible_points": [
+        {
+          "symbol": "300502",
+          "date": "2026-05-14",
+          "time": "10:14",
+          "llm_action": "buy",
+          "price": 624.0,
+          "llm_confidence": 0.55,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        },
+        {
+          "symbol": "300502",
+          "date": "2026-06-11",
+          "time": "11:22",
+          "llm_action": "buy",
+          "price": 530.87,
+          "llm_confidence": 0.54,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        }
+      ],
+      "pairs": [
+        {
+          "date": "2026-05-18",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:04",
+          "buy_price": 1045.18,
+          "buy_confidence": 0.54,
+          "sell_time": "09:57",
+          "sell_price": 1071.99,
+          "sell_confidence": 0.62,
+          "spread": 26.81,
+          "spread_pct": 2.501,
+          "pnl": 2681.0
+        },
+        {
+          "date": "2026-05-27",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "13:43",
+          "buy_price": 1105.15,
+          "buy_confidence": 0.55,
+          "sell_time": "10:11",
+          "sell_price": 1131.58,
+          "sell_confidence": 0.65,
+          "spread": 26.43,
+          "spread_pct": 2.3357,
+          "pnl": 2643.0
+        },
+        {
+          "date": "2026-05-29",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:12",
+          "buy_price": 1170.28,
+          "buy_confidence": 0.55,
+          "sell_time": "10:37",
+          "sell_price": 1198.0,
+          "sell_confidence": 0.67,
+          "spread": 27.72,
+          "spread_pct": 2.3139,
+          "pnl": 2772.0
+        },
+        {
+          "date": "2026-06-09",
+          "symbol": "300308",
+          "order": "buy->sell",
+          "buy_time": "10:22",
+          "buy_price": 1138.74,
+          "buy_confidence": 0.56,
+          "sell_time": "13:46",
+          "sell_price": 1186.62,
+          "sell_confidence": 0.61,
+          "spread": 47.88,
+          "spread_pct": 4.2046,
+          "pnl": 4788.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "14:46",
+          "buy_price": 1138.05,
+          "buy_confidence": 0.54,
+          "sell_time": "13:24",
+          "sell_price": 1168.86,
+          "sell_confidence": 0.66,
+          "spread": 30.81,
+          "spread_pct": 2.6359,
+          "pnl": 3081.0
+        },
+        {
+          "date": "2026-05-13",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "09:59",
+          "buy_price": 586.4,
+          "buy_confidence": 0.56,
+          "sell_time": "10:21",
+          "sell_price": 599.88,
+          "sell_confidence": 0.62,
+          "spread": 13.48,
+          "spread_pct": 2.2988,
+          "pnl": 1348.0
+        },
+        {
+          "date": "2026-05-19",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "10:50",
+          "buy_price": 564.29,
+          "buy_confidence": 0.54,
+          "sell_time": "13:31",
+          "sell_price": 571.09,
+          "sell_confidence": 0.7,
+          "spread": 6.8,
+          "spread_pct": 1.2051,
+          "pnl": 680.0
+        },
+        {
+          "date": "2026-06-11",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "14:14",
+          "buy_price": 503.44,
+          "buy_confidence": 0.54,
+          "sell_time": "14:36",
+          "sell_price": 521.52,
+          "sell_confidence": 0.72,
+          "spread": 18.08,
+          "spread_pct": 3.5913,
+          "pnl": 1808.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300502",
+          "order": "sell->buy",
+          "buy_time": "10:03",
+          "buy_price": 517.12,
+          "buy_confidence": 0.54,
+          "sell_time": "09:53",
+          "sell_price": 522.96,
+          "sell_confidence": 0.62,
+          "spread": 5.84,
+          "spread_pct": 1.1167,
+          "pnl": 584.0
+        }
+      ]
+    },
+    {
+      "name": "stock_specific_close_floor_1.0pct",
+      "symbol": "ALL",
+      "paired_trade_count": 8,
+      "success_count": 8,
+      "success_rate_pct": 100.0,
+      "total_pnl_gross": 17167.0,
+      "average_spread_per_pair": 21.4587,
+      "average_pnl_per_pair": 2145.88,
+      "by_symbol": [
+        {
+          "symbol": "300308",
+          "paired_trade_count": 4,
+          "success_count": 4,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 12747.0,
+          "average_spread_per_pair": 31.8675,
+          "average_pnl_per_pair": 3186.75
+        },
+        {
+          "symbol": "300502",
+          "paired_trade_count": 4,
+          "success_count": 4,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 4420.0,
+          "average_spread_per_pair": 11.05,
+          "average_pnl_per_pair": 1105.0
+        }
+      ],
+      "blocked_eligible_count": 2,
+      "blocked_eligible_points": [
+        {
+          "symbol": "300502",
+          "date": "2026-05-14",
+          "time": "10:14",
+          "llm_action": "buy",
+          "price": 624.0,
+          "llm_confidence": 0.55,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        },
+        {
+          "symbol": "300502",
+          "date": "2026-06-11",
+          "time": "11:22",
+          "llm_action": "buy",
+          "price": 530.87,
+          "llm_confidence": 0.54,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        }
+      ],
+      "pairs": [
+        {
+          "date": "2026-05-18",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:04",
+          "buy_price": 1045.18,
+          "buy_confidence": 0.54,
+          "sell_time": "09:57",
+          "sell_price": 1071.99,
+          "sell_confidence": 0.62,
+          "spread": 26.81,
+          "spread_pct": 2.501,
+          "pnl": 2681.0
+        },
+        {
+          "date": "2026-05-27",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "13:43",
+          "buy_price": 1105.15,
+          "buy_confidence": 0.55,
+          "sell_time": "10:11",
+          "sell_price": 1131.58,
+          "sell_confidence": 0.65,
+          "spread": 26.43,
+          "spread_pct": 2.3357,
+          "pnl": 2643.0
+        },
+        {
+          "date": "2026-06-09",
+          "symbol": "300308",
+          "order": "buy->sell",
+          "buy_time": "10:22",
+          "buy_price": 1138.74,
+          "buy_confidence": 0.56,
+          "sell_time": "13:46",
+          "sell_price": 1186.62,
+          "sell_confidence": 0.61,
+          "spread": 47.88,
+          "spread_pct": 4.2046,
+          "pnl": 4788.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "14:46",
+          "buy_price": 1138.05,
+          "buy_confidence": 0.54,
+          "sell_time": "09:50",
+          "sell_price": 1164.4,
+          "sell_confidence": 0.63,
+          "spread": 26.35,
+          "spread_pct": 2.263,
+          "pnl": 2635.0
+        },
+        {
+          "date": "2026-05-13",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "09:59",
+          "buy_price": 586.4,
+          "buy_confidence": 0.56,
+          "sell_time": "10:21",
+          "sell_price": 599.88,
+          "sell_confidence": 0.62,
+          "spread": 13.48,
+          "spread_pct": 2.2988,
+          "pnl": 1348.0
+        },
+        {
+          "date": "2026-05-19",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "10:50",
+          "buy_price": 564.29,
+          "buy_confidence": 0.54,
+          "sell_time": "13:31",
+          "sell_price": 571.09,
+          "sell_confidence": 0.7,
+          "spread": 6.8,
+          "spread_pct": 1.2051,
+          "pnl": 680.0
+        },
+        {
+          "date": "2026-06-11",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "14:14",
+          "buy_price": 503.44,
+          "buy_confidence": 0.54,
+          "sell_time": "14:36",
+          "sell_price": 521.52,
+          "sell_confidence": 0.72,
+          "spread": 18.08,
+          "spread_pct": 3.5913,
+          "pnl": 1808.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300502",
+          "order": "sell->buy",
+          "buy_time": "10:03",
+          "buy_price": 517.12,
+          "buy_confidence": 0.54,
+          "sell_time": "09:53",
+          "sell_price": 522.96,
+          "sell_confidence": 0.62,
+          "spread": 5.84,
+          "spread_pct": 1.1167,
+          "pnl": 584.0
+        }
+      ]
+    },
+    {
+      "name": "stock_specific_open_reprice_close_floor_1.0pct",
+      "symbol": "ALL",
+      "paired_trade_count": 9,
+      "success_count": 9,
+      "success_rate_pct": 100.0,
+      "total_pnl_gross": 20385.0,
+      "average_spread_per_pair": 22.65,
+      "average_pnl_per_pair": 2265.0,
+      "by_symbol": [
+        {
+          "symbol": "300308",
+          "paired_trade_count": 5,
+          "success_count": 5,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 15965.0,
+          "average_spread_per_pair": 31.93,
+          "average_pnl_per_pair": 3193.0
+        },
+        {
+          "symbol": "300502",
+          "paired_trade_count": 4,
+          "success_count": 4,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 4420.0,
+          "average_spread_per_pair": 11.05,
+          "average_pnl_per_pair": 1105.0
+        }
+      ],
+      "blocked_eligible_count": 2,
+      "blocked_eligible_points": [
+        {
+          "symbol": "300502",
+          "date": "2026-05-14",
+          "time": "10:14",
+          "llm_action": "buy",
+          "price": 624.0,
+          "llm_confidence": 0.55,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        },
+        {
+          "symbol": "300502",
+          "date": "2026-06-11",
+          "time": "11:22",
+          "llm_action": "buy",
+          "price": 530.87,
+          "llm_confidence": 0.54,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        }
+      ],
+      "pairs": [
+        {
+          "date": "2026-05-18",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:04",
+          "buy_price": 1045.18,
+          "buy_confidence": 0.54,
+          "sell_time": "09:57",
+          "sell_price": 1071.99,
+          "sell_confidence": 0.62,
+          "spread": 26.81,
+          "spread_pct": 2.501,
+          "pnl": 2681.0
+        },
+        {
+          "date": "2026-05-27",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "13:43",
+          "buy_price": 1105.15,
+          "buy_confidence": 0.55,
+          "sell_time": "10:11",
+          "sell_price": 1131.58,
+          "sell_confidence": 0.65,
+          "spread": 26.43,
+          "spread_pct": 2.3357,
+          "pnl": 2643.0
+        },
+        {
+          "date": "2026-05-29",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:12",
+          "buy_price": 1170.28,
+          "buy_confidence": 0.55,
+          "sell_time": "10:37",
+          "sell_price": 1198.0,
+          "sell_confidence": 0.67,
+          "spread": 27.72,
+          "spread_pct": 2.3139,
+          "pnl": 2772.0
+        },
+        {
+          "date": "2026-06-09",
+          "symbol": "300308",
+          "order": "buy->sell",
+          "buy_time": "10:22",
+          "buy_price": 1138.74,
+          "buy_confidence": 0.56,
+          "sell_time": "13:46",
+          "sell_price": 1186.62,
+          "sell_confidence": 0.61,
+          "spread": 47.88,
+          "spread_pct": 4.2046,
+          "pnl": 4788.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "14:46",
+          "buy_price": 1138.05,
+          "buy_confidence": 0.54,
+          "sell_time": "13:24",
+          "sell_price": 1168.86,
+          "sell_confidence": 0.66,
+          "spread": 30.81,
+          "spread_pct": 2.6359,
+          "pnl": 3081.0
+        },
+        {
+          "date": "2026-05-13",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "09:59",
+          "buy_price": 586.4,
+          "buy_confidence": 0.56,
+          "sell_time": "10:21",
+          "sell_price": 599.88,
+          "sell_confidence": 0.62,
+          "spread": 13.48,
+          "spread_pct": 2.2988,
+          "pnl": 1348.0
+        },
+        {
+          "date": "2026-05-19",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "10:50",
+          "buy_price": 564.29,
+          "buy_confidence": 0.54,
+          "sell_time": "13:31",
+          "sell_price": 571.09,
+          "sell_confidence": 0.7,
+          "spread": 6.8,
+          "spread_pct": 1.2051,
+          "pnl": 680.0
+        },
+        {
+          "date": "2026-06-11",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "14:14",
+          "buy_price": 503.44,
+          "buy_confidence": 0.54,
+          "sell_time": "14:36",
+          "sell_price": 521.52,
+          "sell_confidence": 0.72,
+          "spread": 18.08,
+          "spread_pct": 3.5913,
+          "pnl": 1808.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300502",
+          "order": "sell->buy",
+          "buy_time": "10:03",
+          "buy_price": 517.12,
+          "buy_confidence": 0.54,
+          "sell_time": "09:53",
+          "sell_price": 522.96,
+          "sell_confidence": 0.62,
+          "spread": 5.84,
+          "spread_pct": 1.1167,
+          "pnl": 584.0
+        }
+      ]
+    },
+    {
+      "name": "stock_specific_close_floor_1.2pct",
+      "symbol": "ALL",
+      "paired_trade_count": 7,
+      "success_count": 7,
+      "success_rate_pct": 100.0,
+      "total_pnl_gross": 16583.0,
+      "average_spread_per_pair": 23.69,
+      "average_pnl_per_pair": 2369.0,
+      "by_symbol": [
+        {
+          "symbol": "300308",
+          "paired_trade_count": 4,
+          "success_count": 4,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 12747.0,
+          "average_spread_per_pair": 31.8675,
+          "average_pnl_per_pair": 3186.75
+        },
+        {
+          "symbol": "300502",
+          "paired_trade_count": 3,
+          "success_count": 3,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 3836.0,
+          "average_spread_per_pair": 12.7867,
+          "average_pnl_per_pair": 1278.67
+        }
+      ],
+      "blocked_eligible_count": 2,
+      "blocked_eligible_points": [
+        {
+          "symbol": "300502",
+          "date": "2026-05-14",
+          "time": "10:14",
+          "llm_action": "buy",
+          "price": 624.0,
+          "llm_confidence": 0.55,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        },
+        {
+          "symbol": "300502",
+          "date": "2026-06-11",
+          "time": "11:22",
+          "llm_action": "buy",
+          "price": 530.87,
+          "llm_confidence": 0.54,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        }
+      ],
+      "pairs": [
+        {
+          "date": "2026-05-18",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:04",
+          "buy_price": 1045.18,
+          "buy_confidence": 0.54,
+          "sell_time": "09:57",
+          "sell_price": 1071.99,
+          "sell_confidence": 0.62,
+          "spread": 26.81,
+          "spread_pct": 2.501,
+          "pnl": 2681.0
+        },
+        {
+          "date": "2026-05-27",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "13:43",
+          "buy_price": 1105.15,
+          "buy_confidence": 0.55,
+          "sell_time": "10:11",
+          "sell_price": 1131.58,
+          "sell_confidence": 0.65,
+          "spread": 26.43,
+          "spread_pct": 2.3357,
+          "pnl": 2643.0
+        },
+        {
+          "date": "2026-06-09",
+          "symbol": "300308",
+          "order": "buy->sell",
+          "buy_time": "10:22",
+          "buy_price": 1138.74,
+          "buy_confidence": 0.56,
+          "sell_time": "13:46",
+          "sell_price": 1186.62,
+          "sell_confidence": 0.61,
+          "spread": 47.88,
+          "spread_pct": 4.2046,
+          "pnl": 4788.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "14:46",
+          "buy_price": 1138.05,
+          "buy_confidence": 0.54,
+          "sell_time": "09:50",
+          "sell_price": 1164.4,
+          "sell_confidence": 0.63,
+          "spread": 26.35,
+          "spread_pct": 2.263,
+          "pnl": 2635.0
+        },
+        {
+          "date": "2026-05-13",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "09:59",
+          "buy_price": 586.4,
+          "buy_confidence": 0.56,
+          "sell_time": "10:21",
+          "sell_price": 599.88,
+          "sell_confidence": 0.62,
+          "spread": 13.48,
+          "spread_pct": 2.2988,
+          "pnl": 1348.0
+        },
+        {
+          "date": "2026-05-19",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "10:50",
+          "buy_price": 564.29,
+          "buy_confidence": 0.54,
+          "sell_time": "13:31",
+          "sell_price": 571.09,
+          "sell_confidence": 0.7,
+          "spread": 6.8,
+          "spread_pct": 1.2051,
+          "pnl": 680.0
+        },
+        {
+          "date": "2026-06-11",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "14:14",
+          "buy_price": 503.44,
+          "buy_confidence": 0.54,
+          "sell_time": "14:36",
+          "sell_price": 521.52,
+          "sell_confidence": 0.72,
+          "spread": 18.08,
+          "spread_pct": 3.5913,
+          "pnl": 1808.0
+        }
+      ]
+    },
+    {
+      "name": "stock_specific_open_reprice_close_floor_1.2pct",
+      "symbol": "ALL",
+      "paired_trade_count": 8,
+      "success_count": 8,
+      "success_rate_pct": 100.0,
+      "total_pnl_gross": 19801.0,
+      "average_spread_per_pair": 24.7512,
+      "average_pnl_per_pair": 2475.12,
+      "by_symbol": [
+        {
+          "symbol": "300308",
+          "paired_trade_count": 5,
+          "success_count": 5,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 15965.0,
+          "average_spread_per_pair": 31.93,
+          "average_pnl_per_pair": 3193.0
+        },
+        {
+          "symbol": "300502",
+          "paired_trade_count": 3,
+          "success_count": 3,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 3836.0,
+          "average_spread_per_pair": 12.7867,
+          "average_pnl_per_pair": 1278.67
+        }
+      ],
+      "blocked_eligible_count": 2,
+      "blocked_eligible_points": [
+        {
+          "symbol": "300502",
+          "date": "2026-05-14",
+          "time": "10:14",
+          "llm_action": "buy",
+          "price": 624.0,
+          "llm_confidence": 0.55,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        },
+        {
+          "symbol": "300502",
+          "date": "2026-06-11",
+          "time": "11:22",
+          "llm_action": "buy",
+          "price": 530.87,
+          "llm_confidence": 0.54,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        }
+      ],
+      "pairs": [
+        {
+          "date": "2026-05-18",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:04",
+          "buy_price": 1045.18,
+          "buy_confidence": 0.54,
+          "sell_time": "09:57",
+          "sell_price": 1071.99,
+          "sell_confidence": 0.62,
+          "spread": 26.81,
+          "spread_pct": 2.501,
+          "pnl": 2681.0
+        },
+        {
+          "date": "2026-05-27",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "13:43",
+          "buy_price": 1105.15,
+          "buy_confidence": 0.55,
+          "sell_time": "10:11",
+          "sell_price": 1131.58,
+          "sell_confidence": 0.65,
+          "spread": 26.43,
+          "spread_pct": 2.3357,
+          "pnl": 2643.0
+        },
+        {
+          "date": "2026-05-29",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:12",
+          "buy_price": 1170.28,
+          "buy_confidence": 0.55,
+          "sell_time": "10:37",
+          "sell_price": 1198.0,
+          "sell_confidence": 0.67,
+          "spread": 27.72,
+          "spread_pct": 2.3139,
+          "pnl": 2772.0
+        },
+        {
+          "date": "2026-06-09",
+          "symbol": "300308",
+          "order": "buy->sell",
+          "buy_time": "10:22",
+          "buy_price": 1138.74,
+          "buy_confidence": 0.56,
+          "sell_time": "13:46",
+          "sell_price": 1186.62,
+          "sell_confidence": 0.61,
+          "spread": 47.88,
+          "spread_pct": 4.2046,
+          "pnl": 4788.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "14:46",
+          "buy_price": 1138.05,
+          "buy_confidence": 0.54,
+          "sell_time": "13:24",
+          "sell_price": 1168.86,
+          "sell_confidence": 0.66,
+          "spread": 30.81,
+          "spread_pct": 2.6359,
+          "pnl": 3081.0
+        },
+        {
+          "date": "2026-05-13",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "09:59",
+          "buy_price": 586.4,
+          "buy_confidence": 0.56,
+          "sell_time": "10:21",
+          "sell_price": 599.88,
+          "sell_confidence": 0.62,
+          "spread": 13.48,
+          "spread_pct": 2.2988,
+          "pnl": 1348.0
+        },
+        {
+          "date": "2026-05-19",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "10:50",
+          "buy_price": 564.29,
+          "buy_confidence": 0.54,
+          "sell_time": "13:31",
+          "sell_price": 571.09,
+          "sell_confidence": 0.7,
+          "spread": 6.8,
+          "spread_pct": 1.2051,
+          "pnl": 680.0
+        },
+        {
+          "date": "2026-06-11",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "14:14",
+          "buy_price": 503.44,
+          "buy_confidence": 0.54,
+          "sell_time": "14:36",
+          "sell_price": 521.52,
+          "sell_confidence": 0.72,
+          "spread": 18.08,
+          "spread_pct": 3.5913,
+          "pnl": 1808.0
+        }
+      ]
+    },
+    {
+      "name": "stock_specific_close_floor_1.5pct",
+      "symbol": "ALL",
+      "paired_trade_count": 6,
+      "success_count": 6,
+      "success_rate_pct": 100.0,
+      "total_pnl_gross": 15903.0,
+      "average_spread_per_pair": 26.505,
+      "average_pnl_per_pair": 2650.5,
+      "by_symbol": [
+        {
+          "symbol": "300308",
+          "paired_trade_count": 4,
+          "success_count": 4,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 12747.0,
+          "average_spread_per_pair": 31.8675,
+          "average_pnl_per_pair": 3186.75
+        },
+        {
+          "symbol": "300502",
+          "paired_trade_count": 2,
+          "success_count": 2,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 3156.0,
+          "average_spread_per_pair": 15.78,
+          "average_pnl_per_pair": 1578.0
+        }
+      ],
+      "blocked_eligible_count": 2,
+      "blocked_eligible_points": [
+        {
+          "symbol": "300502",
+          "date": "2026-05-14",
+          "time": "10:14",
+          "llm_action": "buy",
+          "price": 624.0,
+          "llm_confidence": 0.55,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        },
+        {
+          "symbol": "300502",
+          "date": "2026-06-11",
+          "time": "11:22",
+          "llm_action": "buy",
+          "price": 530.87,
+          "llm_confidence": 0.54,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        }
+      ],
+      "pairs": [
+        {
+          "date": "2026-05-18",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:04",
+          "buy_price": 1045.18,
+          "buy_confidence": 0.54,
+          "sell_time": "09:57",
+          "sell_price": 1071.99,
+          "sell_confidence": 0.62,
+          "spread": 26.81,
+          "spread_pct": 2.501,
+          "pnl": 2681.0
+        },
+        {
+          "date": "2026-05-27",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "13:43",
+          "buy_price": 1105.15,
+          "buy_confidence": 0.55,
+          "sell_time": "10:11",
+          "sell_price": 1131.58,
+          "sell_confidence": 0.65,
+          "spread": 26.43,
+          "spread_pct": 2.3357,
+          "pnl": 2643.0
+        },
+        {
+          "date": "2026-06-09",
+          "symbol": "300308",
+          "order": "buy->sell",
+          "buy_time": "10:22",
+          "buy_price": 1138.74,
+          "buy_confidence": 0.56,
+          "sell_time": "13:46",
+          "sell_price": 1186.62,
+          "sell_confidence": 0.61,
+          "spread": 47.88,
+          "spread_pct": 4.2046,
+          "pnl": 4788.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "14:46",
+          "buy_price": 1138.05,
+          "buy_confidence": 0.54,
+          "sell_time": "09:50",
+          "sell_price": 1164.4,
+          "sell_confidence": 0.63,
+          "spread": 26.35,
+          "spread_pct": 2.263,
+          "pnl": 2635.0
+        },
+        {
+          "date": "2026-05-13",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "09:59",
+          "buy_price": 586.4,
+          "buy_confidence": 0.56,
+          "sell_time": "10:21",
+          "sell_price": 599.88,
+          "sell_confidence": 0.62,
+          "spread": 13.48,
+          "spread_pct": 2.2988,
+          "pnl": 1348.0
+        },
+        {
+          "date": "2026-06-11",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "14:14",
+          "buy_price": 503.44,
+          "buy_confidence": 0.54,
+          "sell_time": "14:36",
+          "sell_price": 521.52,
+          "sell_confidence": 0.72,
+          "spread": 18.08,
+          "spread_pct": 3.5913,
+          "pnl": 1808.0
+        }
+      ]
+    },
+    {
+      "name": "stock_specific_open_reprice_close_floor_1.5pct",
+      "symbol": "ALL",
+      "paired_trade_count": 7,
+      "success_count": 7,
+      "success_rate_pct": 100.0,
+      "total_pnl_gross": 19121.0,
+      "average_spread_per_pair": 27.3157,
+      "average_pnl_per_pair": 2731.57,
+      "by_symbol": [
+        {
+          "symbol": "300308",
+          "paired_trade_count": 5,
+          "success_count": 5,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 15965.0,
+          "average_spread_per_pair": 31.93,
+          "average_pnl_per_pair": 3193.0
+        },
+        {
+          "symbol": "300502",
+          "paired_trade_count": 2,
+          "success_count": 2,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 3156.0,
+          "average_spread_per_pair": 15.78,
+          "average_pnl_per_pair": 1578.0
+        }
+      ],
+      "blocked_eligible_count": 2,
+      "blocked_eligible_points": [
+        {
+          "symbol": "300502",
+          "date": "2026-05-14",
+          "time": "10:14",
+          "llm_action": "buy",
+          "price": 624.0,
+          "llm_confidence": 0.55,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        },
+        {
+          "symbol": "300502",
+          "date": "2026-06-11",
+          "time": "11:22",
+          "llm_action": "buy",
+          "price": 530.87,
+          "llm_confidence": 0.54,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        }
+      ],
+      "pairs": [
+        {
+          "date": "2026-05-18",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:04",
+          "buy_price": 1045.18,
+          "buy_confidence": 0.54,
+          "sell_time": "09:57",
+          "sell_price": 1071.99,
+          "sell_confidence": 0.62,
+          "spread": 26.81,
+          "spread_pct": 2.501,
+          "pnl": 2681.0
+        },
+        {
+          "date": "2026-05-27",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "13:43",
+          "buy_price": 1105.15,
+          "buy_confidence": 0.55,
+          "sell_time": "10:11",
+          "sell_price": 1131.58,
+          "sell_confidence": 0.65,
+          "spread": 26.43,
+          "spread_pct": 2.3357,
+          "pnl": 2643.0
+        },
+        {
+          "date": "2026-05-29",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:12",
+          "buy_price": 1170.28,
+          "buy_confidence": 0.55,
+          "sell_time": "10:37",
+          "sell_price": 1198.0,
+          "sell_confidence": 0.67,
+          "spread": 27.72,
+          "spread_pct": 2.3139,
+          "pnl": 2772.0
+        },
+        {
+          "date": "2026-06-09",
+          "symbol": "300308",
+          "order": "buy->sell",
+          "buy_time": "10:22",
+          "buy_price": 1138.74,
+          "buy_confidence": 0.56,
+          "sell_time": "13:46",
+          "sell_price": 1186.62,
+          "sell_confidence": 0.61,
+          "spread": 47.88,
+          "spread_pct": 4.2046,
+          "pnl": 4788.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "14:46",
+          "buy_price": 1138.05,
+          "buy_confidence": 0.54,
+          "sell_time": "13:24",
+          "sell_price": 1168.86,
+          "sell_confidence": 0.66,
+          "spread": 30.81,
+          "spread_pct": 2.6359,
+          "pnl": 3081.0
+        },
+        {
+          "date": "2026-05-13",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "09:59",
+          "buy_price": 586.4,
+          "buy_confidence": 0.56,
+          "sell_time": "10:21",
+          "sell_price": 599.88,
+          "sell_confidence": 0.62,
+          "spread": 13.48,
+          "spread_pct": 2.2988,
+          "pnl": 1348.0
+        },
+        {
+          "date": "2026-06-11",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "14:14",
+          "buy_price": 503.44,
+          "buy_confidence": 0.54,
+          "sell_time": "14:36",
+          "sell_price": 521.52,
+          "sell_confidence": 0.72,
+          "spread": 18.08,
+          "spread_pct": 3.5913,
+          "pnl": 1808.0
+        }
+      ]
+    },
+    {
+      "name": "stock_specific_close_floor_2.0pct",
+      "symbol": "ALL",
+      "paired_trade_count": 6,
+      "success_count": 6,
+      "success_rate_pct": 100.0,
+      "total_pnl_gross": 15903.0,
+      "average_spread_per_pair": 26.505,
+      "average_pnl_per_pair": 2650.5,
+      "by_symbol": [
+        {
+          "symbol": "300308",
+          "paired_trade_count": 4,
+          "success_count": 4,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 12747.0,
+          "average_spread_per_pair": 31.8675,
+          "average_pnl_per_pair": 3186.75
+        },
+        {
+          "symbol": "300502",
+          "paired_trade_count": 2,
+          "success_count": 2,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 3156.0,
+          "average_spread_per_pair": 15.78,
+          "average_pnl_per_pair": 1578.0
+        }
+      ],
+      "blocked_eligible_count": 2,
+      "blocked_eligible_points": [
+        {
+          "symbol": "300502",
+          "date": "2026-05-14",
+          "time": "10:14",
+          "llm_action": "buy",
+          "price": 624.0,
+          "llm_confidence": 0.55,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        },
+        {
+          "symbol": "300502",
+          "date": "2026-06-11",
+          "time": "11:22",
+          "llm_action": "buy",
+          "price": 530.87,
+          "llm_confidence": 0.54,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        }
+      ],
+      "pairs": [
+        {
+          "date": "2026-05-18",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:04",
+          "buy_price": 1045.18,
+          "buy_confidence": 0.54,
+          "sell_time": "09:57",
+          "sell_price": 1071.99,
+          "sell_confidence": 0.62,
+          "spread": 26.81,
+          "spread_pct": 2.501,
+          "pnl": 2681.0
+        },
+        {
+          "date": "2026-05-27",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "13:43",
+          "buy_price": 1105.15,
+          "buy_confidence": 0.55,
+          "sell_time": "10:11",
+          "sell_price": 1131.58,
+          "sell_confidence": 0.65,
+          "spread": 26.43,
+          "spread_pct": 2.3357,
+          "pnl": 2643.0
+        },
+        {
+          "date": "2026-06-09",
+          "symbol": "300308",
+          "order": "buy->sell",
+          "buy_time": "10:22",
+          "buy_price": 1138.74,
+          "buy_confidence": 0.56,
+          "sell_time": "13:46",
+          "sell_price": 1186.62,
+          "sell_confidence": 0.61,
+          "spread": 47.88,
+          "spread_pct": 4.2046,
+          "pnl": 4788.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "14:46",
+          "buy_price": 1138.05,
+          "buy_confidence": 0.54,
+          "sell_time": "09:50",
+          "sell_price": 1164.4,
+          "sell_confidence": 0.63,
+          "spread": 26.35,
+          "spread_pct": 2.263,
+          "pnl": 2635.0
+        },
+        {
+          "date": "2026-05-13",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "09:59",
+          "buy_price": 586.4,
+          "buy_confidence": 0.56,
+          "sell_time": "10:21",
+          "sell_price": 599.88,
+          "sell_confidence": 0.62,
+          "spread": 13.48,
+          "spread_pct": 2.2988,
+          "pnl": 1348.0
+        },
+        {
+          "date": "2026-06-11",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "14:14",
+          "buy_price": 503.44,
+          "buy_confidence": 0.54,
+          "sell_time": "14:36",
+          "sell_price": 521.52,
+          "sell_confidence": 0.72,
+          "spread": 18.08,
+          "spread_pct": 3.5913,
+          "pnl": 1808.0
+        }
+      ]
+    },
+    {
+      "name": "stock_specific_open_reprice_close_floor_2.0pct",
+      "symbol": "ALL",
+      "paired_trade_count": 7,
+      "success_count": 7,
+      "success_rate_pct": 100.0,
+      "total_pnl_gross": 19121.0,
+      "average_spread_per_pair": 27.3157,
+      "average_pnl_per_pair": 2731.57,
+      "by_symbol": [
+        {
+          "symbol": "300308",
+          "paired_trade_count": 5,
+          "success_count": 5,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 15965.0,
+          "average_spread_per_pair": 31.93,
+          "average_pnl_per_pair": 3193.0
+        },
+        {
+          "symbol": "300502",
+          "paired_trade_count": 2,
+          "success_count": 2,
+          "success_rate_pct": 100.0,
+          "total_pnl_gross": 3156.0,
+          "average_spread_per_pair": 15.78,
+          "average_pnl_per_pair": 1578.0
+        }
+      ],
+      "blocked_eligible_count": 2,
+      "blocked_eligible_points": [
+        {
+          "symbol": "300502",
+          "date": "2026-05-14",
+          "time": "10:14",
+          "llm_action": "buy",
+          "price": 624.0,
+          "llm_confidence": 0.55,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        },
+        {
+          "symbol": "300502",
+          "date": "2026-06-11",
+          "time": "11:22",
+          "llm_action": "buy",
+          "price": 530.87,
+          "llm_confidence": 0.54,
+          "rule_ids": [
+            "pullback_low_rebound"
+          ]
+        }
+      ],
+      "pairs": [
+        {
+          "date": "2026-05-18",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:04",
+          "buy_price": 1045.18,
+          "buy_confidence": 0.54,
+          "sell_time": "09:57",
+          "sell_price": 1071.99,
+          "sell_confidence": 0.62,
+          "spread": 26.81,
+          "spread_pct": 2.501,
+          "pnl": 2681.0
+        },
+        {
+          "date": "2026-05-27",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "13:43",
+          "buy_price": 1105.15,
+          "buy_confidence": 0.55,
+          "sell_time": "10:11",
+          "sell_price": 1131.58,
+          "sell_confidence": 0.65,
+          "spread": 26.43,
+          "spread_pct": 2.3357,
+          "pnl": 2643.0
+        },
+        {
+          "date": "2026-05-29",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "11:12",
+          "buy_price": 1170.28,
+          "buy_confidence": 0.55,
+          "sell_time": "10:37",
+          "sell_price": 1198.0,
+          "sell_confidence": 0.67,
+          "spread": 27.72,
+          "spread_pct": 2.3139,
+          "pnl": 2772.0
+        },
+        {
+          "date": "2026-06-09",
+          "symbol": "300308",
+          "order": "buy->sell",
+          "buy_time": "10:22",
+          "buy_price": 1138.74,
+          "buy_confidence": 0.56,
+          "sell_time": "13:46",
+          "sell_price": 1186.62,
+          "sell_confidence": 0.61,
+          "spread": 47.88,
+          "spread_pct": 4.2046,
+          "pnl": 4788.0
+        },
+        {
+          "date": "2026-06-12",
+          "symbol": "300308",
+          "order": "sell->buy",
+          "buy_time": "14:46",
+          "buy_price": 1138.05,
+          "buy_confidence": 0.54,
+          "sell_time": "13:24",
+          "sell_price": 1168.86,
+          "sell_confidence": 0.66,
+          "spread": 30.81,
+          "spread_pct": 2.6359,
+          "pnl": 3081.0
+        },
+        {
+          "date": "2026-05-13",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "09:59",
+          "buy_price": 586.4,
+          "buy_confidence": 0.56,
+          "sell_time": "10:21",
+          "sell_price": 599.88,
+          "sell_confidence": 0.62,
+          "spread": 13.48,
+          "spread_pct": 2.2988,
+          "pnl": 1348.0
+        },
+        {
+          "date": "2026-06-11",
+          "symbol": "300502",
+          "order": "buy->sell",
+          "buy_time": "14:14",
+          "buy_price": 503.44,
+          "buy_confidence": 0.54,
+          "sell_time": "14:36",
+          "sell_price": 521.52,
+          "sell_confidence": 0.72,
+          "spread": 18.08,
+          "spread_pct": 3.5913,
+          "pnl": 1808.0
+        }
+      ]
+    }
+  ]
+}

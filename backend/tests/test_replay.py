@@ -2,7 +2,12 @@ from datetime import datetime
 from datetime import timedelta
 
 from tmaker.domain.models import Candle, Position, Signal, SignalAction, SignalKind
-from tmaker.strategy.replay import _compact_points, _to_replay_candidate, replay_symbol_today, replay_today
+from tmaker.strategy.replay import (
+    _compact_points,
+    _to_replay_candidate,
+    replay_symbol_today,
+    replay_today,
+)
 
 
 def test_compact_points_defaults_to_first_trigger_for_strict_replay() -> None:
@@ -247,6 +252,56 @@ def test_compact_points_keeps_new_pullback_buy_low_as_separate_leg() -> None:
     ]
 
 
+def test_compact_points_merges_nearby_deep_session_low_buy_cluster() -> None:
+    candidates = [
+        _candidate(
+            "2026-06-05T11:14:00",
+            1133.97,
+            action=SignalAction.BUY,
+            kind=SignalKind.SUSPECTED,
+            rule_ids=["deep_session_vwap_low_buy"],
+        ),
+        _candidate(
+            "2026-06-05T11:17:00",
+            1133.00,
+            action=SignalAction.BUY,
+            kind=SignalKind.SUSPECTED,
+            rule_ids=["deep_session_vwap_low_buy"],
+        ),
+    ]
+
+    [point] = _compact_points(candidates)
+
+    assert point.point.timestamp == "2026-06-05T11:14:00"
+    assert point.point.price == 1133.97
+
+
+def test_compact_points_keeps_new_deep_session_low_buy_leg() -> None:
+    candidates = [
+        _candidate(
+            "2026-06-05T11:14:00",
+            1133.97,
+            action=SignalAction.BUY,
+            kind=SignalKind.SUSPECTED,
+            rule_ids=["deep_session_vwap_low_buy"],
+        ),
+        _candidate(
+            "2026-06-05T11:17:00",
+            1127.80,
+            action=SignalAction.BUY,
+            kind=SignalKind.SUSPECTED,
+            rule_ids=["deep_session_vwap_low_buy"],
+        ),
+    ]
+
+    points = _compact_points(candidates)
+
+    assert [point.point.timestamp for point in points] == [
+        "2026-06-05T11:14:00",
+        "2026-06-05T11:17:00",
+    ]
+
+
 def test_symbol_replay_keeps_later_candidates_until_sell_is_confirmed() -> None:
     candles = _intraday_sell_then_buy_candles()
     provider = _Provider(candles)
@@ -337,9 +392,11 @@ def _candidate(
     action: SignalAction = SignalAction.BUY,
     kind: SignalKind = SignalKind.CANDIDATE_BUY,
     rule_ids: list[str] | None = None,
+    symbol: str = "300308",
+    candles: list[Candle] | None = None,
 ):
     signal = Signal(
-        symbol="300308",
+        symbol=symbol,
         timestamp=datetime.fromisoformat(timestamp),
         kind=kind,
         action=action,
@@ -353,9 +410,10 @@ def _candidate(
     return _to_replay_candidate(
         signal,
         price,
-        [
+        candles
+        or [
             Candle(
-                symbol="300308",
+                symbol=symbol,
                 timestamp=signal.timestamp,
                 open=price,
                 high=price + 0.1,
@@ -364,7 +422,7 @@ def _candidate(
                 volume=1000,
             )
         ],
-        Position(symbol="300308", base_quantity=0, cost_price=0, available_cash=20000, t_quantity=100),
+        Position(symbol=symbol, base_quantity=0, cost_price=0, available_cash=20000, t_quantity=100),
         [signal],
     )
 

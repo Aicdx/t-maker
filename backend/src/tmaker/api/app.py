@@ -32,6 +32,7 @@ from tmaker.market.akshare_provider import MarketDataChannelUnavailable, MarketD
 from tmaker.market.eastmoney_provider import EastmoneyHistoricalMinuteProvider
 from tmaker.market.bars import aggregate_five_minute
 from tmaker.market.stock_search import EastmoneyStockSearchProvider
+from tmaker.market.tdx_provider import TdxHistoricalMinuteProvider
 from tmaker.market.tencent_provider import TencentHistoricalMinuteProvider, TencentMarketProvider
 from tmaker.monitor.policy import MonitorPolicy
 from tmaker.monitor.runner import MonitorRunner, SignalAnalyzer, TextNotifier
@@ -102,6 +103,7 @@ def create_app(
     monitor_analyzer: SignalAnalyzer | None = None,
     monitor_notifier: TextNotifier | None = None,
     stock_search_provider: StockSearchProvider | None = None,
+    historical_fallback_provider: object | None = None,
 ) -> FastAPI:
     app = FastAPI(title="T Maker API")
     state = _initial_state()
@@ -109,6 +111,13 @@ def create_app(
     provider = minute_provider or TencentMarketProvider()
     multi_day_provider = minute_provider or TencentHistoricalMinuteProvider()
     day_provider = minute_provider or EastmoneyHistoricalMinuteProvider()
+    day_fallback_provider = (
+        historical_fallback_provider
+        if historical_fallback_provider is not None
+        else TdxHistoricalMinuteProvider()
+        if minute_provider is None
+        else None
+    )
     search_provider = stock_search_provider or EastmoneyStockSearchProvider()
     reviewer = LlmReviewer(review_client or _default_review_client())
     repo = repository or PostgresRepository(settings.database_url)
@@ -347,7 +356,7 @@ def create_app(
         _ensure_watch_symbol(state, symbol)
         trade_date = _parse_trade_date(date)
         repo.init_schema()
-        candles = _get_or_fetch_day_candles(repo, day_provider, symbol, trade_date)
+        candles = _get_or_fetch_day_candles(repo, day_provider, symbol, trade_date, day_fallback_provider)
         quote = repo.get_quote(symbol, trade_date)
         points = repo.get_replay_points(symbol, trade_date, strict=True)
         return _day_payload(symbol, trade_date, candles, points, quote)
@@ -357,8 +366,16 @@ def create_app(
         _ensure_watch_symbol(state, symbol)
         trade_date = _parse_trade_date(date)
         repo.init_schema()
-        candles = _get_or_fetch_day_candles(repo, day_provider, symbol, trade_date)
-        day_candles_by_symbol = _context_day_candles(repo, day_provider, state, symbol, trade_date, candles)
+        candles = _get_or_fetch_day_candles(repo, day_provider, symbol, trade_date, day_fallback_provider)
+        day_candles_by_symbol = _context_day_candles(
+            repo,
+            day_provider,
+            state,
+            symbol,
+            trade_date,
+            candles,
+            day_fallback_provider,
+        )
         static_day_provider = _StaticDayProvider(day_candles_by_symbol)
         if review:
             result = replay_today(static_day_provider, [symbol], state.positions, reviewer.client, strict=strict)
@@ -390,8 +407,16 @@ def create_app(
         _ensure_watch_symbol(state, symbol)
         trade_date = _parse_trade_date(date)
         repo.init_schema()
-        candles = _get_or_fetch_day_candles(repo, day_provider, symbol, trade_date)
-        day_candles_by_symbol = _context_day_candles(repo, day_provider, state, symbol, trade_date, candles)
+        candles = _get_or_fetch_day_candles(repo, day_provider, symbol, trade_date, day_fallback_provider)
+        day_candles_by_symbol = _context_day_candles(
+            repo,
+            day_provider,
+            state,
+            symbol,
+            trade_date,
+            candles,
+            day_fallback_provider,
+        )
         static_day_provider = _StaticDayProvider(day_candles_by_symbol)
         point = review_symbol_point(
             static_day_provider,
@@ -973,45 +998,57 @@ def _get_or_fetch_day_candles(
     provider: TencentMarketProvider,
     symbol: str,
     trade_date: date_type,
+    fallback_provider: object | None = None,
 ) -> list[Candle]:
     candles = repo.get_minute_bars(symbol, trade_date)
     if candles and _cached_day_candles_are_usable(candles):
         return candles
 
+    fetched_source: object = provider
     try:
         fetched = _fetch_minutes_for_trade_date(provider, symbol, trade_date)
     except (MarketDataChannelUnavailable, httpx.HTTPError) as exc:
-        raise HTTPException(
-            status_code=503,
-            detail=_market_data_error_detail(
-                code="market_data_channel_unavailable",
-                message=(
-                    f"{symbol} {trade_date.isoformat()} 本地没有分钟线缓存，"
-                    "行情源暂不可用，暂时无法补拉该日 1 分钟数据。"
+        fallback = _fetch_with_fallback(fallback_provider, symbol, trade_date)
+        if fallback is not None:
+            fetched = fallback
+            fetched_source = fallback_provider or provider
+        else:
+            raise HTTPException(
+                status_code=503,
+                detail=_market_data_error_detail(
+                    code="market_data_channel_unavailable",
+                    message=(
+                        f"{symbol} {trade_date.isoformat()} 本地没有分钟线缓存，"
+                        "行情源暂不可用，暂时无法补拉该日 1 分钟数据。"
+                    ),
+                    symbol=symbol,
+                    trade_date=trade_date,
+                    provider=provider,
+                    reason=_format_provider_error(exc),
                 ),
-                symbol=symbol,
-                trade_date=trade_date,
-                provider=provider,
-                reason=_format_provider_error(exc),
-            ),
-        ) from exc
+            ) from exc
     except MarketDataUnavailable as exc:
-        raise HTTPException(
-            status_code=404,
-            detail=_market_data_error_detail(
-                code="minute_bars_not_found",
-                message=(
-                    f"{symbol} {trade_date.isoformat()} 本地没有分钟线缓存，"
-                    "行情源也未返回该日 1 分钟数据。可能是非交易日、公开源不支持该历史范围，"
-                    "或该日数据尚未入库。"
+        fallback = _fetch_with_fallback(fallback_provider, symbol, trade_date)
+        if fallback is not None:
+            fetched = fallback
+            fetched_source = fallback_provider or provider
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail=_market_data_error_detail(
+                    code="minute_bars_not_found",
+                    message=(
+                        f"{symbol} {trade_date.isoformat()} 本地没有分钟线缓存，"
+                        "行情源也未返回该日 1 分钟数据。可能是非交易日、公开源不支持该历史范围，"
+                        "或该日数据尚未入库。"
+                    ),
+                    symbol=symbol,
+                    trade_date=trade_date,
+                    provider=provider,
+                    reason=_format_provider_error(exc),
                 ),
-                symbol=symbol,
-                trade_date=trade_date,
-                provider=provider,
-                reason=_format_provider_error(exc),
-            ),
-        ) from exc
-    repo.save_minute_bars(fetched, source=_provider_source(provider))
+            ) from exc
+    repo.save_minute_bars(fetched, source=_provider_source(fetched_source))
     candles = [candle for candle in fetched if candle.symbol == symbol and candle.timestamp.date() == trade_date]
     if not candles:
         raise HTTPException(
@@ -1024,11 +1061,24 @@ def _get_or_fetch_day_candles(
                 ),
                 symbol=symbol,
                 trade_date=trade_date,
-                provider=provider,
+                provider=fetched_source,
                 reason="Fetched minute bars did not match requested symbol and date",
             ),
         )
     return sorted(candles, key=lambda candle: candle.timestamp)
+
+
+def _fetch_with_fallback(
+    fallback_provider: object | None,
+    symbol: str,
+    trade_date: date_type,
+) -> list[Candle] | None:
+    if fallback_provider is None:
+        return None
+    try:
+        return _fetch_minutes_for_trade_date(fallback_provider, symbol, trade_date)
+    except (MarketDataUnavailable, MarketDataChannelUnavailable, httpx.HTTPError):
+        return None
 
 
 def _cached_day_candles_are_usable(candles: list[Candle]) -> bool:
@@ -1045,18 +1095,31 @@ def _context_day_candles(
     symbol: str,
     trade_date: date_type,
     candles: list[Candle],
+    fallback_provider: object | None = None,
 ) -> dict[str, list[Candle]]:
     candles_by_symbol = {symbol: candles}
     for item in state.watchlist:
         if item.symbol == symbol:
             continue
         try:
-            candles_by_symbol[item.symbol] = _get_or_fetch_day_candles(repo, provider, item.symbol, trade_date)
+            candles_by_symbol[item.symbol] = _get_or_fetch_day_candles(
+                repo,
+                provider,
+                item.symbol,
+                trade_date,
+                fallback_provider,
+            )
         except HTTPException:
             continue
     for index_symbol in ("399006", "000300", "000001"):
         try:
-            candles_by_symbol[index_symbol] = _get_or_fetch_day_candles(repo, provider, index_symbol, trade_date)
+            candles_by_symbol[index_symbol] = _get_or_fetch_day_candles(
+                repo,
+                provider,
+                index_symbol,
+                trade_date,
+                fallback_provider,
+            )
             break
         except HTTPException:
             continue
@@ -1082,6 +1145,8 @@ def _provider_source(provider: object) -> str:
         return "akshare"
     if "tencent" in name:
         return "tencent_ifzq"
+    if "tdx" in name:
+        return "tdx"
     return "market_provider"
 
 

@@ -84,6 +84,39 @@ def test_trade_confirmation_stats_pairs_sell_then_lower_buy() -> None:
     assert stats.pairs[0].closed_at == datetime(2026, 6, 10, 14, 6)
 
 
+def test_trade_confirmation_stats_reprices_same_direction_open_before_pairing() -> None:
+    stats = build_trade_confirmation_stats(
+        [
+            _confirmation(
+                id="buy-early",
+                signal_timestamp=datetime(2026, 6, 10, 10, 1),
+                confirm_action=TradeConfirmationAction.BUY,
+                price=100.0,
+            ),
+            _confirmation(
+                id="buy-better",
+                signal_timestamp=datetime(2026, 6, 10, 10, 2),
+                confirm_action=TradeConfirmationAction.BUY,
+                price=98.0,
+            ),
+            _confirmation(
+                id="sell-close",
+                signal_timestamp=datetime(2026, 6, 10, 10, 3),
+                confirm_action=TradeConfirmationAction.SELL,
+                price=101.0,
+            ),
+        ],
+        trade_date=date(2026, 6, 10),
+    )
+
+    assert stats.summary.paired_count == 1
+    assert stats.summary.unpaired_count == 1
+    assert stats.summary.total_pnl == 300.0
+    assert stats.pairs[0].buy_id == "buy-better"
+    assert stats.pairs[0].sell_id == "sell-close"
+    assert [item.id for item in stats.unpaired] == ["buy-early"]
+
+
 def test_trade_confirmation_stats_isolates_symbols_and_keeps_unpaired_records() -> None:
     stats = build_trade_confirmation_stats(
         [

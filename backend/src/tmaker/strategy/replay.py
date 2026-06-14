@@ -7,7 +7,7 @@ from dataclasses import dataclass, replace
 from datetime import date
 from typing import Protocol
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from tmaker.domain.models import Candle, Position, ProviderHealth, Signal
 from tmaker.domain.models import SignalAction
@@ -16,6 +16,7 @@ from tmaker.llm.review import LlmReviewer, ReviewClient
 from tmaker.market.bars import aggregate_five_minute
 from tmaker.strategy.market_context import build_equal_weight_sector_candles, build_market_context
 from tmaker.strategy.rules import MarketContext, evaluate_signal
+from tmaker.strategy.t_pairing import TradeActionPoint, select_open_reprice_pairs
 
 
 class ReplayProvider(Protocol):
@@ -48,6 +49,7 @@ class ReplayResult(BaseModel):
     strict: bool
     points: list[ReplayPoint]
     summary: dict[str, int]
+    pair_summary: dict[str, object] = Field(default_factory=dict)
 
 
 class ReplayDayResult(BaseModel):
@@ -57,6 +59,7 @@ class ReplayDayResult(BaseModel):
     chart_series: dict[str, list[Candle]]
     points: list[ReplayPoint]
     summary: dict[str, int | float | None]
+    pair_summary: dict[str, object] = Field(default_factory=dict)
 
 
 class RecentReplayResult(BaseModel):
@@ -178,6 +181,7 @@ def replay_today(
             "sell_count": sum(1 for candidate in all_points if candidate.point.action == "sell"),
             "reviewed_count": sum(1 for point in compact_points if point.llm_status == "ok"),
         },
+        pair_summary=build_replay_pair_summary(compact_points),
     )
 
 
@@ -211,6 +215,7 @@ def replay_symbol_today(
             "sell_count": sum(1 for candidate in candidates if candidate.point.action == "sell"),
             "reviewed_count": 0,
         },
+        pair_summary=build_replay_pair_summary([candidate.point for candidate in compacted]),
     )
 
 
@@ -267,6 +272,7 @@ def replay_recent_days(
                 chart_series=_chart_series(day_candles_by_symbol),
                 points=result.points,
                 summary=_with_accuracy_summary(result.summary, result.points, day_candles_by_symbol),
+                pair_summary=result.pair_summary,
             )
         )
 
@@ -279,6 +285,72 @@ def replay_recent_days(
         days=day_results,
         summary=_combine_recent_summary(day_results),
     )
+
+
+def build_replay_pair_summary(points: Sequence[ReplayPoint]) -> dict[str, object]:
+    action_points = []
+    for point in points:
+        action = _replay_pair_action(point)
+        if action is None:
+            continue
+        action_points.append(
+            TradeActionPoint(
+                id=f"{point.symbol}|{point.timestamp}|{action}|{point.price}",
+                symbol=point.symbol,
+                timestamp=_parse_timestamp(point.timestamp),
+                action=action,
+                price=point.price,
+            )
+        )
+    pairing = select_open_reprice_pairs(
+        action_points,
+        max_actions=4,
+        max_pairs=2,
+        require_directional_close=True,
+    )
+    pairs = [
+        {
+            "symbol": pair.symbol,
+            "order": pair.order,
+            "buy_time": pair.buy.timestamp.strftime("%H:%M"),
+            "buy_price": pair.buy.price,
+            "sell_time": pair.sell.timestamp.strftime("%H:%M"),
+            "sell_price": pair.sell.price,
+            "spread": pair.spread,
+            "spread_pct": pair.spread_pct,
+            "gross_pnl": round(pair.spread * 100, 2),
+        }
+        for pair in pairing.pairs
+    ]
+    gross = round(sum(item["gross_pnl"] for item in pairs), 2)
+    win_count = sum(1 for pair in pairs if pair["spread"] > 0)
+    return {
+        "strategy": "open_reprice_directional_close_watch",
+        "quantity_per_action": 100,
+        "max_actions_per_symbol_day": 4,
+        "max_pairs_per_symbol_day": 2,
+        "eligible_point_count": len(action_points),
+        "paired_trade_count": len(pairs),
+        "success_count": win_count,
+        "success_rate_pct": round(win_count / len(pairs) * 100, 2) if pairs else 0,
+        "total_pnl_gross": gross,
+        "average_spread_per_pair": round(
+            sum(pair["spread"] for pair in pairs) / len(pairs), 4
+        )
+        if pairs
+        else 0,
+        "pairs": pairs,
+    }
+
+
+def _replay_pair_action(point: ReplayPoint) -> str | None:
+    if point.llm_status == "ok":
+        if point.execution_allowed is False or point.llm_action not in {"buy", "sell"}:
+            return None
+        return point.llm_action
+    if point.llm_status in {"failed"}:
+        return None
+    return point.action if point.action in {"buy", "sell"} else None
 
 
 def _symbol_candidates(
@@ -581,6 +653,8 @@ def should_keep_realtime_candidate(
 ) -> bool:
     if not signal.needs_llm_review:
         return True
+    if _starts_new_realtime_buy_low_leg(previous_signals, signal, price):
+        return True
 
     candidates = [
         _to_replay_candidate(existing_signal, existing_price, [], position, [])
@@ -592,6 +666,30 @@ def should_keep_realtime_candidate(
     candidate = _to_replay_candidate(signal, price, [], position, [])
     compacted = _compact_points([*candidates, candidate], strict=True)
     return any(item.signal is signal for item in compacted)
+
+
+def _starts_new_realtime_buy_low_leg(
+    previous_signals: Sequence[tuple[Signal, float]],
+    signal: Signal,
+    price: float,
+) -> bool:
+    if signal.action != SignalAction.BUY or not any(
+        rule_id in {"pullback_low_rebound", "deep_session_vwap_low_buy"} for rule_id in signal.rule_ids
+    ):
+        return False
+    previous_buy_prices = [
+        existing_price
+        for existing_signal, existing_price in previous_signals
+        if existing_signal.symbol == signal.symbol
+        and existing_signal.action == SignalAction.BUY
+        and existing_signal.needs_llm_review
+        and existing_signal.timestamp <= signal.timestamp
+        and any(
+            rule_id in {"pullback_low_rebound", "deep_session_vwap_low_buy"}
+            for rule_id in existing_signal.rule_ids
+        )
+    ]
+    return bool(previous_buy_prices) and price <= min(previous_buy_prices) * 0.995
 
 
 def _compact_points(candidates: list[_ReplayCandidate], strict: bool = True) -> list[_ReplayCandidate]:
@@ -706,7 +804,8 @@ def _best_point(candidates: list[_ReplayCandidate]) -> _ReplayCandidate:
 
 def _is_pullback_buy_cluster(candidates: list[_ReplayCandidate]) -> bool:
     return bool(candidates) and candidates[0].point.action == "buy" and any(
-        "pullback_low_rebound" in candidate.point.rule_ids for candidate in candidates
+        any(rule_id in {"pullback_low_rebound", "deep_session_vwap_low_buy"} for rule_id in candidate.point.rule_ids)
+        for candidate in candidates
     )
 
 
@@ -721,6 +820,8 @@ def _compact_rule_key(rule_ids: list[str]) -> list[str]:
         for rule_id in core
     ):
         return ["sell_high_stretch"]
+    if any(rule_id in {"pullback_low_rebound", "deep_session_vwap_low_buy"} for rule_id in core):
+        return ["buy_low_pullback"]
     return core
 
 

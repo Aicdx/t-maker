@@ -73,6 +73,10 @@ class RepairingProvider(FakeProvider):
         ]
 
 
+class FakeTdxProvider(FakeProvider):
+    pass
+
+
 class ProgressiveProvider(FakeProvider):
     def __init__(self, candles: dict[str, list[list[Candle]]]) -> None:
         super().__init__({})
@@ -180,6 +184,7 @@ class FakeRepository:
         self.watch_symbols: dict[str, WatchSymbol] = {}
         self.positions: dict[str, Position] = {}
         self.saved_bars: list[Candle] = []
+        self.saved_bar_sources: list[str] = []
         self.saved_points: list[ReplayPoint] = []
         self.schema_initialized = False
 
@@ -187,6 +192,7 @@ class FakeRepository:
         self.schema_initialized = True
 
     def save_minute_bars(self, candles: list[Candle], source: str) -> None:
+        self.saved_bar_sources.append(source)
         self.saved_bars.extend(candles)
         for candle in candles:
             key = (candle.symbol, candle.timestamp.date())
@@ -1216,7 +1222,7 @@ def test_snapshot_uses_saved_realtime_points_to_merge_clusters_after_backend_res
                 timestamp="2026-06-05T10:10:00",
                 action="buy",
                 kind="suspected",
-                price=102.25,
+                price=101.20,
                 confidence=0.64,
                 rule_ids=["pullback_low_rebound"],
                 reason="早盘实时盯盘低吸候选",
@@ -1869,6 +1875,137 @@ def test_day_endpoint_fetches_requested_uncached_date_and_persists_bars() -> Non
     assert repository.list_trading_days("300308") == ["2026-05-28"]
 
 
+def test_day_endpoint_uses_historical_fallback_when_primary_day_provider_has_no_bars() -> None:
+    repository = FakeRepository()
+    trade_date = date(2026, 5, 28)
+    primary_provider = FakeProvider(MarketDataUnavailable("No Eastmoney data"))
+    fallback_provider = FakeTdxProvider(
+        {
+            "300308": [
+                Candle(
+                    symbol="300308",
+                    timestamp=datetime(2026, 5, 28, 9, 31),
+                    open=150.0,
+                    high=150.5,
+                    low=149.8,
+                    close=150.2,
+                    volume=1200,
+                )
+            ]
+        }
+    )
+    client = TestClient(
+        create_app(
+            minute_provider=primary_provider,
+            repository=repository,
+            historical_fallback_provider=fallback_provider,
+        )
+    )
+
+    response = client.get("/api/day?symbol=300308&date=2026-05-28")
+
+    payload = response.json()
+    assert response.status_code == 200
+    assert primary_provider.day_calls == [("300308", trade_date)]
+    assert fallback_provider.day_calls == [("300308", trade_date)]
+    assert payload["chart_series"]["one_minute"][0]["timestamp"] == "2026-05-28T09:31:00"
+    assert repository.get_minute_bars("300308", trade_date)
+    assert repository.saved_bar_sources[-1] == "tdx"
+
+
+def test_day_replay_endpoint_uses_historical_fallback_when_primary_day_provider_has_no_bars() -> None:
+    repository = FakeRepository()
+    trade_date = date(2026, 6, 5)
+    primary_provider = FakeProvider(MarketDataUnavailable("No Eastmoney data"))
+    fallback_provider = FakeTdxProvider({"600487": _buy_candidate_candles("600487")})
+    client = TestClient(
+        create_app(
+            minute_provider=primary_provider,
+            repository=repository,
+            historical_fallback_provider=fallback_provider,
+        )
+    )
+
+    response = client.post("/api/day/replay?symbol=600487&date=2026-06-05&strict=true&review=false")
+
+    payload = response.json()
+    assert response.status_code == 200
+    assert primary_provider.day_calls[0] == ("600487", trade_date)
+    assert fallback_provider.day_calls[0] == ("600487", trade_date)
+    assert payload["points"]
+    assert repository.get_minute_bars("600487", trade_date)
+    assert "tdx" in repository.saved_bar_sources
+
+
+def test_day_replay_review_endpoint_uses_historical_fallback_when_primary_day_provider_has_no_bars() -> None:
+    repository = FakeRepository()
+    trade_date = date(2026, 6, 5)
+    review_client = FakeReviewClient()
+    primary_provider = FakeProvider(MarketDataUnavailable("No Eastmoney data"))
+    fallback_provider = FakeTdxProvider({"600487": _buy_candidate_candles("600487")})
+    client = TestClient(
+        create_app(
+            minute_provider=primary_provider,
+            review_client=review_client,
+            repository=repository,
+            historical_fallback_provider=fallback_provider,
+        )
+    )
+    replay_payload = client.post(
+        "/api/day/replay?symbol=600487&date=2026-06-05&strict=true&review=false"
+    ).json()
+    repository.minute_bars.clear()
+    repository.saved_bar_sources.clear()
+    primary_provider.day_calls.clear()
+    fallback_provider.day_calls.clear()
+
+    response = client.post(
+        "/api/day/replay/review",
+        params={
+            "symbol": "600487",
+            "date": "2026-06-05",
+            "timestamp": replay_payload["points"][0]["timestamp"],
+            "strict": True,
+        },
+    )
+
+    payload = response.json()
+    assert response.status_code == 200
+    assert primary_provider.day_calls[0] == ("600487", trade_date)
+    assert fallback_provider.day_calls[0] == ("600487", trade_date)
+    assert payload["symbol"] == "600487"
+    assert payload["llm_status"] == "ok"
+    assert repository.get_minute_bars("600487", trade_date)
+    assert "tdx" in repository.saved_bar_sources
+
+
+def test_snapshot_endpoint_does_not_use_historical_fallback_provider() -> None:
+    repository = FakeRepository()
+    candles = {
+        "000636": _provider_candles("000636", close=14.2),
+        "600487": _provider_candles("600487", close=23.4),
+        "300308": _provider_candles("300308", close=151.6),
+        "300502": _provider_candles("300502", close=126.8),
+    }
+    primary_provider = FakeProvider(candles)
+    fallback_provider = FakeTdxProvider(MarketDataUnavailable("snapshot must not call TDX fallback"))
+    client = TestClient(
+        create_app(
+            minute_provider=primary_provider,
+            repository=repository,
+            historical_fallback_provider=fallback_provider,
+        )
+    )
+
+    response = client.get("/api/snapshot")
+
+    assert response.status_code == 200
+    assert primary_provider.calls == ["300308", "300502", "600487", "000636"]
+    assert fallback_provider.calls == []
+    assert fallback_provider.day_calls == []
+    assert "tdx" not in repository.saved_bar_sources
+
+
 def test_day_endpoint_returns_404_when_requested_date_has_no_bars() -> None:
     repository = FakeRepository()
     provider = FakeProvider(MarketDataUnavailable("No minute data returned for 300308 on 2026-05-28"))
@@ -2004,7 +2141,7 @@ def test_recent_replay_endpoint_returns_grouped_days_and_accuracy_summary(monkey
         "600487": _multi_day_candidate_candles("600487"),
     }
     client = TestClient(
-        create_app(minute_provider=FakeProvider(candles), review_client=FakeReviewClient())
+        _test_app(minute_provider=FakeProvider(candles), review_client=FakeReviewClient())
     )
 
     response = client.post("/api/replay/recent?days=5&save=true&review=true")
@@ -2168,7 +2305,7 @@ def _sell_then_buy_candles(symbol: str) -> list[Candle]:
 
 
 def _pullback_low_rebound_candles(symbol: str) -> list[Candle]:
-    closes = [100.0, 101.8, 103.4, 104.5, 104.3, 103.7, 103.0, 102.5, 102.0, 102.25]
+    closes = [100.0, 101.8, 103.4, 104.5, 104.3, 103.7, 102.4, 101.5, 101.0, 101.2]
     volumes = [500, 700, 1000, 1800, 1600, 1300, 1100, 900, 1900, 900]
     return [
         Candle(
@@ -2185,7 +2322,7 @@ def _pullback_low_rebound_candles(symbol: str) -> list[Candle]:
 
 
 def _pullback_low_rebound_same_cluster_candles(symbol: str) -> list[Candle]:
-    closes = [102.1, 101.95, 101.85, 101.72, 101.88]
+    closes = [101.05, 100.95, 100.85, 100.72, 100.88]
     volumes = [850, 830, 810, 1200, 700]
     return [
         *_pullback_low_rebound_candles(symbol),
@@ -2205,7 +2342,7 @@ def _pullback_low_rebound_same_cluster_candles(symbol: str) -> list[Candle]:
 
 
 def _pullback_low_rebound_new_low_leg_candles(symbol: str) -> list[Candle]:
-    closes = [102.0, 101.7, 101.35, 101.1, 101.3, 101.6]
+    closes = [100.7, 100.5, 100.25, 100.1, 100.3, 100.5]
     volumes = [850, 820, 780, 1300, 900, 700]
     return [
         *_pullback_low_rebound_candles(symbol),
